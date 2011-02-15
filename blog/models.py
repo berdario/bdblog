@@ -1,5 +1,6 @@
 import datetime
 from django.template.defaultfilters import slugify
+from django.core.validators import validate_slug, MinValueValidator, MaxValueValidator
 
 from django.db import models
 from django.db.models import Model
@@ -17,12 +18,12 @@ def set_mug_path(instance=None, **kwargs):
 
 class BasePost(Model):
 	title = models.CharField(max_length=200)
-	slug = models.SlugField()
+	slug = models.SlugField(validators=[validate_slug])
 	_text = models.TextField()
 	pub_date = models.DateTimeField('last change', default=now, editable=False)
 	orig_date = models.DateTimeField('date published', default=now, editable=False)
 	previous = models.OneToOneField('self', null=True, editable=False)
-	rating = models.SmallIntegerField(editable=False)
+	rating = models.SmallIntegerField(editable=False, validators=[MinValueValidator(0), MaxValueValidator(10)])
 		
 	def __unicode__(self):
 		return self.title + " - " + str(self.pub_date.ctime())
