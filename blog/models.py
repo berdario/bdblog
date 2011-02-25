@@ -1,9 +1,10 @@
 import datetime
+from unidecode import unidecode
 from django.template.defaultfilters import slugify
-from django.core.validators import validate_slug, MinValueValidator, MaxValueValidator
+from django.core.validators import validate_slug, RegexValidator, MinValueValidator, MaxValueValidator
 
 from django.db import models
-from django.db.models import Model
+from django.db.models import Model, F
 
 now = datetime.datetime.now
 
@@ -17,7 +18,7 @@ def set_mug_path(instance=None, **kwargs):
 	
 
 class BasePost(Model):
-	title = models.CharField(max_length=200)
+	_title = models.CharField(max_length=200)
 	slug = models.SlugField(validators=[validate_slug])
 	_text = models.TextField()
 	pub_date = models.DateTimeField('last change', default=now, editable=False)
@@ -34,9 +35,12 @@ class Post(BasePost):
 	
 	to_be_updated = []
 		
-	def get_text(self):
+	@property
+	def text(self):
 		return self._text
-	def set_text(self, text):
+	
+	@text.setter
+	def text(self, text):
 		diffed_post = BasePost( title = self.title,
 			slug = self.slug,
 			_text = diff( self._text , text),
@@ -50,14 +54,54 @@ class Post(BasePost):
 		self._text = text
 		self.pub_date = now()
 	
-	text = property(get_text, set_text)
+	@property
+	def title(self):
+		return self._title
+	
+	@title.setter
+	def title(self, title):
+		self._update_title_words(-1)
+		self._title = title
+		self.slug = slugify(unidecode(title))
+		self._update_title_words()
+		# some words may be updated 2 times: once with -1 and once with 1
+		# can't use a set instead of list by using F(): the old change would be forgotten
+		# checking if new words are in the old title, and avoid to update them altogheter 
+		# would add more complexity than it's worth it
+			
+	
+	def _update_title_words(self, delta=1):
+		if self.slug:
+			for word in self.slug.split("-"):
+				title_word = TitleWord.get(word)
+				title_word.num = F('num') + delta
+				self.to_be_updated.append(title_word)
 	
 	def save(self, *args, **kwargs):
-		for post_diff in self.to_be_updated:
-			post_diff.save()
+		for other_model in self.to_be_updated:
+			other_model.save()
 		self.to_be_updated = []
-		PostBase.save(self, *args, **kwargs)
+		BasePost.save(self, *args, **kwargs)
 	
 	def __unicode__(self):
 		return self.title
 	
+class TitleWord(Model):
+	word = models.CharField(primary_key=True, max_length=30, validators=[RegexValidator('^[a-z]$')])
+	num = models.IntegerField(default=0, editable=False)
+	
+	@classmethod
+	def get(cls, word):
+		try:
+			return cls.objects.get(pk=word)
+		except cls.DoesNotExist:
+			new_word = cls(word=word)
+			new_word.save()
+			return new_word
+	
+	def __unicode__(self):
+		return self.word
+	
+
+def known(word):
+	return bool(TitleWord.objects.filter(pk=word)[:1])
