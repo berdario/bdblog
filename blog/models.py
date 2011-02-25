@@ -12,7 +12,7 @@ def diff(a,b):
 	
 def set_mug_path(instance=None, **kwargs):
 	d = instance.orig_date.date()
-	path = "mugs/%s/%s/%s-%s" % d.year, d.month, d.day, slugify(instance.title)
+	path = "mugs/%s/%s/%s-%s" % d.year, d.month, d.day, instance.slug
 	return path
 	
 
