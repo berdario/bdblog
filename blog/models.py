@@ -19,19 +19,20 @@ def set_mug_path(instance=None, **kwargs):
 
 class BasePost(Model):
 	_title = models.CharField(max_length=200)
-	slug = models.SlugField(validators=[validate_slug])
 	_text = models.TextField()
 	pub_date = models.DateTimeField('last change', default=now, editable=False)
 	orig_date = models.DateTimeField('date published', default=now, editable=False)
 	previous = models.OneToOneField('self', null=True, editable=False)
-	rating = models.SmallIntegerField(editable=False, validators=[MinValueValidator(0), MaxValueValidator(10)])
+	rating = models.SmallIntegerField(default=0, editable=False, validators=[MinValueValidator(0), MaxValueValidator(10)])
 		
 	def __unicode__(self):
 		return self.title + " - " + str(self.pub_date.ctime())
 
 
 class Post(BasePost):
+	slug = models.SlugField(validators=[validate_slug])
 	mug = models.ImageField(upload_to=set_mug_path)
+	tags = models.ManyToManyField(Tag)
 	
 	to_be_updated = []
 		
@@ -42,7 +43,6 @@ class Post(BasePost):
 	@text.setter
 	def text(self, text):
 		diffed_post = BasePost( title = self.title,
-			slug = self.slug,
 			_text = diff( self._text , text),
 			pub_date = self.pub_date,
 			orig_date = self.orig_date,
@@ -73,9 +73,9 @@ class Post(BasePost):
 	def _update_title_words(self, delta=1):
 		if self.slug:
 			for word in self.slug.split("-"):
-				title_word = TitleWord.get(word)
-				title_word.num = F('num') + delta
-				self.to_be_updated.append(title_word)
+				occurrence = Word.objects.get_or_create(word)
+				occurrence._num = F('_num') + delta
+				self.to_be_updated.append(occurrence)
 	
 	def save(self, *args, **kwargs):
 		for other_model in self.to_be_updated:
@@ -85,19 +85,23 @@ class Post(BasePost):
 	
 	def __unicode__(self):
 		return self.title
+
+class Tag(Model):
+	tag = models.CharField(max_length=200, validators=[RegexValidator('^[a-z ]*$')])
 	
-class TitleWord(Model):
-	word = models.CharField(primary_key=True, max_length=30, validators=[RegexValidator('^[a-z]$')])
-	num = models.IntegerField(default=0, editable=False)
-	
-	@classmethod
-	def get(cls, word):
-		try:
-			return cls.objects.get(pk=word)
-		except cls.DoesNotExist:
-			new_word = cls(word=word)
-			new_word.save()
-			return new_word
+	def __unicdode__(self):
+		return self.tag
+
+class Word(Model):
+	word = models.CharField(primary_key=True, max_length=30, validators=[RegexValidator('^[a-z]*$')])
+	_num = models.IntegerField(default=0, editable=False)
+			
+	@property
+	def num(self):
+		count = 0
+		for tag in Tag.objects.filter("tag__contains"=self.word):
+			count += tag.post_set.count()
+		return _num + count
 	
 	def __unicode__(self):
 		return self.word
