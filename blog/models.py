@@ -102,6 +102,11 @@ class Post(BasePost):
 				occurrence._num = F('_num') + delta
 				self.to_be_updated.append(occurrence)
 	
+	def delete(self, *args, **kwargs):
+		self._update_title_words(-1)
+		self.save()
+		BasePost.delete(self, *args, **kwargs)
+	
 	def save(self, *args, **kwargs):
 		for other_model in self.to_be_updated:
 			other_model.save()
