@@ -11,7 +11,7 @@ from blog.models import Post, Word, Tag#,PostDiff
 p=Post()
 p.title=u"questa è una prova: già, solo una prova"
 p.title=u"this è una prova: già, solo una prova"
-p._text="nothing yet"
+p.text="nothing yet"
 p.save()
 p.tags=["this blog","misc"]
 p.save()

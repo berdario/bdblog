@@ -57,15 +57,17 @@ class Post(BasePost):
 	
 	@text.setter
 	def text(self, text):
-		diffed_post = BasePost( _title = self.title,
-			_text = diff( self._text , text),
-			pub_date = self.pub_date,
-			orig_date = self.orig_date,
-			previous = self.previous,
-			rating = self.rating )
+		if self._text:
+			diffed_post = BasePost( _title = self.title,
+				_text = diff( self._text , text),
+				pub_date = self.pub_date,
+				orig_date = self.orig_date,
+				previous = self.previous,
+				rating = self.rating )
 			
-		self.to_be_updated.append(diffed_post)
-		self.previous = diffed_post
+			self.to_be_updated.append(diffed_post)
+			self.previous = diffed_post
+			
 		self._text = text
 		self.pub_date = now()
 	
@@ -90,7 +92,6 @@ class Post(BasePost):
 		
 	@tags.setter
 	def tags(self, tag_names):
-		#self._tags.clear()
 		tag_list = [Tag.objects.get_or_create(tag=name)[0] for name in tag_names]
 		self._tags = tag_list
 	
