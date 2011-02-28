@@ -47,7 +47,9 @@ class Post(BasePost):
 	mug = models.ImageField(upload_to=set_mug_path)
 	_tags = models.ManyToManyField(Tag)
 	
-	to_be_updated = []
+	def __init__(self, *args, **kwargs):
+		self.to_be_updated = []
+		BasePost.__init__(self, *args, **kwargs)
 		
 	@property
 	def text(self):
