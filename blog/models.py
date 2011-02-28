@@ -12,7 +12,7 @@ def diff(a,b):
 	return ""
 	
 def set_mug_path(instance=None, **kwargs):
-	d = instance.orig_date.date()
+	d = instance.orig_date
 	path = "mugs/%s/%s/%s-%s" % d.year, d.month, d.day, instance.slug
 	return path
 	
@@ -45,12 +45,16 @@ class BasePost(Model):
 	_title = models.CharField(max_length=200)
 	_text = models.TextField()
 	pub_date = models.DateTimeField('last change', default=now, editable=False)
-	orig_date = models.DateTimeField('date published', default=now, editable=False)
+	orig_date = models.DateField('date published', auto_now_add=True)
+	orig_time = models.TimeField('time published', auto_now_add=True)
 	previous = models.OneToOneField('self', null=True, editable=False)
 	rating = models.SmallIntegerField(default=0, editable=False, validators=[MinValueValidator(0), MaxValueValidator(10)])
 		
 	def __unicode__(self):
 		return self._title + " - " + str(self.pub_date.ctime())
+		
+	class Meta(object):
+		ordering = ['orig_date', 'orig_time']
 
 
 class Post(BasePost):
@@ -73,6 +77,7 @@ class Post(BasePost):
 				_text = diff( self._text , text),
 				pub_date = self.pub_date,
 				orig_date = self.orig_date,
+				orig_time = self.orig_time,
 				previous = self.previous,
 				rating = self.rating )
 			
@@ -149,3 +154,29 @@ class Word(Model):
 
 def known(word):
 	return bool(Word.objects.filter(pk=word)[:1])
+		
+def get_post(slug, date=None):
+	slug = unidecode(slug)
+	q = Post.objects
+	if date:
+		q = q.filter(orig_date=date)
+	return q.get(slug=slug)
+
+	
+def get_posts(year, month=None, day=None, page=1, page_range=20):
+	start, end = (page-1)*page_range, page*page_range
+	q = Post.objects.filter(orig_date__year=year)
+	if month:
+		q = q.filter(orig_date__month=month)
+		if day:
+			q = q.filter(orig_date__day=day)
+	return q[start:end]
+
+def from_tags(tags, page=1, page_range=20):
+	start, end = (page-1)*page_range, page*page_range
+	q = Post.objects
+	for t in tags:
+		tag = Tag.objects.get(_tag=t)
+		q = q.filter(_tags=tag)
+	return q[start:end]
+
