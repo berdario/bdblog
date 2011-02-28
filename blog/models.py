@@ -18,11 +18,22 @@ def set_mug_path(instance=None, **kwargs):
 	
 	
 class Tag(Model):
-	tag = models.CharField(max_length=200, validators=[RegexValidator('^[a-z ]*$')])
+	_tag = models.CharField(max_length=200)
+	ascii_tag = models.CharField(max_length=500, validators=[RegexValidator('^[a-z ]*$')])
+	
+	@property
+	def tag(self):
+		return self._tag
+		
+	@tag.setter
+	def tag(self, value):
+		self._tag = value
+		self.ascii_tag = unidecode(value)
 	
 	def __init__(self, *args, **kwargs):
 		Model.__init__(self, *args, **kwargs)
-		for word in self.tag.split():
+		self.ascii_tag = unidecode(self._tag) #get_or_create is called with _tag, and thus won't trigger the tag setter
+		for word in self.ascii_tag.split():
 			if not known(word):
 				Word(word).save()
 	
@@ -92,7 +103,7 @@ class Post(BasePost):
 		
 	@tags.setter
 	def tags(self, tag_names):
-		tag_list = [Tag.objects.get_or_create(tag=name)[0] for name in tag_names]
+		tag_list = [Tag.objects.get_or_create(_tag=name)[0] for name in tag_names]
 		self._tags = tag_list
 	
 	
@@ -128,7 +139,7 @@ class Word(Model):
 	@property
 	def num(self):
 		count = 0
-		for tag in Tag.objects.filter(tag__contains=self.word):
+		for tag in Tag.objects.filter(ascii_tag__contains=self.word):
 			count += tag.post_set.count()
 		return self._num + count
 	

@@ -26,18 +26,19 @@ print Word.objects.get(pk="questa").num # should == 1
 p.text="changed!"
 p.save()
 
-print Tag.objects.filter(tag="this blog")[0].post_set.count() #should == 1
+print Tag.objects.filter(_tag="this blog")[0].post_set.count() #should == 1
 
 newp = Post()
 newp.title=u"this"
 newp._text="bah"
 newp.save()
 
-newp.tags=["bah"]
+newp.tags=[u"æble"]
 newp.save()
 
 print Word.objects.get(pk="this").num #should == 2
 
-Tag.objects.filter(tag="bah")[0].post_set.all()[0].delete()
+print Word.objects.get(pk="aeble").num #should == 1
+Tag.objects.filter(_tag=u"æble")[0].post_set.all()[0].delete()
 
 print Word.objects.get(pk="this").num #should == 1
