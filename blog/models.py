@@ -1,6 +1,8 @@
 import datetime
 from unidecode import unidecode
-from django.template.defaultfilters import slugify
+from unicodedata import normalize
+import re
+from django.template.defaultfilters import stringfilter
 from django.core.validators import validate_slug, RegexValidator, MinValueValidator, MaxValueValidator
 
 from django.db import models
@@ -136,6 +138,16 @@ class Post(BasePost):
 	
 	def __unicode__(self):
 		return self.title
+	
+	def get_absolute_url(self):
+		return "/blog/%s/%s/%s/%s" % (
+			self.orig_date.year,
+			self.orig_date.month,
+			self.orig_date.day,
+			slugify(self.title)
+			)
+		# the permalink decorator will resolve with admin=True, is unable to resolve with the "unicode slug"
+		# and is also unable to resolve the optional date: thus I'm writing the url explicitly
 
 class Word(Model):
 	word = models.CharField(primary_key=True, max_length=30, validators=[RegexValidator('^[a-z]*$')])
@@ -151,6 +163,12 @@ class Word(Model):
 	def __unicode__(self):
 		return self.word
 	
+@stringfilter
+def slugify(value):
+	value = normalize('NFKD', value)
+	value = re.sub('[?,:!@#~`+=$%^&\\*()\[\]{}<>"]', '', value, re.UNICODE).strip().lower()
+	# sub('[^\w\s-]', '', value) like in the default slugify won't work since it'll catch also unicode letters
+	return re.sub('[-\s]+', '-', value, re.UNICODE)
 
 def known(word):
 	return bool(Word.objects.filter(pk=word)[:1])
