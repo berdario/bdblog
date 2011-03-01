@@ -6,7 +6,7 @@ from django.template.defaultfilters import stringfilter
 from django.core.validators import validate_slug, RegexValidator, MinValueValidator, MaxValueValidator
 
 from django.db import models
-from django.db.models import Model, F
+from django.db.models import Model, F, Q
 
 now = datetime.datetime.now
 
@@ -150,7 +150,7 @@ class Post(BasePost):
 		# and is also unable to resolve the optional date: thus I'm writing the url explicitly
 
 class Word(Model):
-	word = models.CharField(primary_key=True, max_length=30, validators=[RegexValidator('^[a-z]*$')])
+	word = models.CharField(primary_key=True, unique=True, db_index=True, max_length=30, validators=[RegexValidator('^[a-z]*$')])
 	_num = models.IntegerField(default=0, editable=False)
 			
 	@property
@@ -166,12 +166,20 @@ class Word(Model):
 @stringfilter
 def slugify(value):
 	value = normalize('NFKD', value)
-	value = re.sub('[?,:!@#~`+=$%^&\\*()\[\]{}<>"]', '', value, re.UNICODE).strip().lower()
+	value = re.sub(re.compile('[?,:!@#~`+=$%^&\\*()\[\]{}<>"]', re.UNICODE), '', value, 0).strip().lower()
 	# sub('[^\w\s-]', '', value) like in the default slugify won't work since it'll catch also unicode letters
-	return re.sub('[-\s]+', '-', value, re.UNICODE)
+	# TODO, check this again: it seems that I wasn't really supplying re.UNICODE to the substitution
+	return re.sub(re.compile('[-\s]+', re.UNICODE), '-', value, 0)
 
 def known(word):
-	return bool(Word.objects.filter(pk=word)[:1])
+	return Word.objects.filter(pk=word).exists()
+	
+def all_words():
+	return set(w.word for w in Word.objects.all())
+
+def word_score(word):
+	if not known(word): return 0
+	return Word.objects.filter(pk=word)[0].num
 		
 def get_post(slug, date=None):
 	slug = unidecode(slug)
@@ -194,7 +202,7 @@ def from_tags(tags, page=1, page_range=20):
 	start, end = (page-1)*page_range, page*page_range
 	q = Post.objects
 	for t in tags:
-		tag = Tag.objects.get(_tag=t)
+		tag = Tag.objects.get(Q(_tag=t) | Q(ascii_tag=t))
 		q = q.filter(_tags=tag)
 	return q[start:end]
 

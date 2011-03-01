@@ -67,3 +67,6 @@ def _handle_verbose_month(month):
 class UnknownMonth(Exception):
 	def __init__(self, month):
 		self.month = month
+	
+	def __str__(self):
+		return self.month
