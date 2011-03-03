@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 def test_blog():
-	from blog.models import Post, Word, Tag#,PostDiff
+	from bdblog.models import Post, Word, Tag#,PostDiff
 	#p=Post("titolo","testo")
 	#p2=Post("titolo","testoaggiornato",orig_date=p.orig_date)
 	#dp=PostDiff(p,"")
@@ -46,7 +46,7 @@ def test_blog():
 	
 	
 def test_correct():
-	from blog.SpellingRedirectMiddleware import SpellingRedirectMiddleware as Spelling
+	from bdblog.SpellingRedirectMiddleware import SpellingRedirectMiddleware as Spelling
 	spelling = Spelling()
 	#print spelling.correct_month("febbruary")
 	#print spelling.correct_month("febbbruary")

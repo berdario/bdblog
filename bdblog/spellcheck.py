@@ -29,12 +29,11 @@ class SpellingRedirectMiddleware(object):
 			return page_not_found(request)
 			
 		elif isinstance(exception, Post.DoesNotExist):
-			print request.path
-			slug = re.search(r'\d{4}/(\d{1,2}|\w{3,9})/\d{1,2}/(\w+[\w-]+\w+)/', request.path, re.UNICODE).group(2)
+			slug = re.search(r'(blog|admin)/(\d{4}/(\d{1,2}|\w{3,9})/\d{1,2}/)?(\w+[\w-]+\w+)/', request.path, re.UNICODE).group(4)
 			new_slug = self._fix_words(slug.split("-"))
 			new_slug = "-".join(new_slug)
 			if new_slug != slug:
-				path = re.sub(re.compile(r'(\d{4}/(\d{1,2}|\w{3,9})/\d{1,2}/)\w+[\w-]+\w+(/)', re.UNICODE), "\g<1>"+new_slug+"\g<3>", request.path, 0)
+				path = re.sub(re.compile(r'(blog|admin)/(\d{4}/(\d{1,2}|\w{3,9})/\d{1,2}/)?\w+[\w-]+\w+(/)', re.UNICODE), "\g<1>/"+new_slug+"\g<4>", request.path, 0)
 				return redirect(path, permanent=True)
 			return page_not_found(request)
 		
