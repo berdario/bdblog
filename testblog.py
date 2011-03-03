@@ -48,10 +48,10 @@ def test_blog():
 def test_correct():
 	from bdblog.SpellingRedirectMiddleware import SpellingRedirectMiddleware as Spelling
 	spelling = Spelling()
-	#print spelling.correct_month("febbruary")
-	#print spelling.correct_month("febbbruary")
-	#print spelling.correct_word("blok")
-	print spelling.correct_word("blokk")
+	print spelling.correct_month("febbruary") == "february"
+	print spelling.correct_month("febbbruary") == "february"
+	print spelling.correct_word("blok") == "blog"
+	print spelling.correct_word("blokk") == "blog"
 	
 #import cProfile
 #cProfile.runctx("test_correct()", globals(), locals(), filename="profile")

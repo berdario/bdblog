@@ -14,8 +14,11 @@ word_set = all_words()
 class SpellingRedirectMiddleware(object):
 	def __init__(self):
 		self.correct_month = partial(correct, lambda m: m in months, lambda m: 1)
+
+		self.known = lambda w: w in word_set
 		#self.correct_word = partial(correct, known, word_score)
-		self.correct_word = partial(correct, lambda w: w in word_set, word_score)
+		self.correct_word = partial(correct, self.known, word_score)
+
 		
 
 	def process_exception(self, request, exception):
@@ -62,9 +65,9 @@ class SpellingRedirectMiddleware(object):
 		new_words = []
 		for word in words:
 			word = unidecode(word)
-			if not known(word):
+			if not self.known(word):
 				word = self.correct_word(word)
-				if not known(word):
+				if not self.known(word):
 					return page_not_found(request)
 			new_words.append(word)
 		return new_words
