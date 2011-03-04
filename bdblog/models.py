@@ -198,6 +198,7 @@ def get_posts(year, month=None, day=None, page=1, page_range=20):
 			q = q.filter(orig_date__day=day)
 	return q[start:end]
 
+
 def from_tags(tags, page=1, page_range=20):
 	start, end = (page-1)*page_range, page*page_range
 	q = Post.objects
@@ -205,4 +206,4 @@ def from_tags(tags, page=1, page_range=20):
 		tag = Tag.objects.get(Q(_tag=t) | Q(ascii_tag=t))
 		q = q.filter(_tags=tag)
 	return q[start:end]
-
+	

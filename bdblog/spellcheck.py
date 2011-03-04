@@ -5,6 +5,7 @@ from unidecode import unidecode
 
 from django.shortcuts import redirect
 from django.views.defaults import page_not_found
+from django.db.models.signals import post_save
 
 from views import UnknownMonth, months
 from models import Post, Tag, known, word_score, all_words
@@ -18,9 +19,8 @@ class SpellingRedirectMiddleware(object):
 		self.known = lambda w: w in word_set
 		#self.correct_word = partial(correct, known, word_score)
 		self.correct_word = partial(correct, self.known, word_score)
-
 		
-
+		
 	def process_exception(self, request, exception):
 		if isinstance(exception, UnknownMonth):
 			new_month = self.correct_month(exception.month)
@@ -33,7 +33,7 @@ class SpellingRedirectMiddleware(object):
 			
 		elif isinstance(exception, Post.DoesNotExist):
 			slug = re.search(r'(blog|admin)/(\d{4}/(\d{1,2}|\w{3,9})/\d{1,2}/)?(\w+[\w-]+\w+)/', request.path, re.UNICODE).group(4)
-			new_slug = self._fix_words(slug.split("-"))
+			new_slug = self._fix_words(slug.split("-"), request)
 			new_slug = "-".join(new_slug)
 			if new_slug != slug:
 				path = re.sub(re.compile(r'(blog|admin)/(\d{4}/(\d{1,2}|\w{3,9})/\d{1,2}/)?\w+[\w-]+\w+(/)', re.UNICODE), "\g<1>/"+new_slug+"\g<4>", request.path, 0)
@@ -53,15 +53,16 @@ class SpellingRedirectMiddleware(object):
 			separator = "." if separator == "\." else separator
 			new_tags=[]
 			for tag in tag_list:
-				new_tag = self._fix_words(tag.split())
+				new_tag = self._fix_words(tag.split(), request)
 				new_tags.append(separator.join(new_tag))
 			new_tags = "+".join(new_tags)
 			if new_tags != tags:
 				path = re.sub(re.compile(r'(tag/)\w[\w\+\.]+\w(/)', re.UNICODE), "\g<1>"+new_tags+"\g<2>", request.path, 0)
 				return redirect(path, permanent=True)
 			return page_not_found(request)
-	
-	def _fix_words(self, words):
+
+
+	def _fix_words(self, words, request):
 		new_words = []
 		for word in words:
 			word = unidecode(word)
@@ -71,6 +72,16 @@ class SpellingRedirectMiddleware(object):
 					return page_not_found(request)
 			new_words.append(word)
 		return new_words
+
+
+
+def update_known_words(sender, **kwargs):
+	global word_set
+	word_set = all_words()
+
+post_save.connect(update_known_words, sender=Post, dispatch_uid="new_post", weak=False)
+post_save.connect(update_known_words, sender=Tag, dispatch_uid="new_tag", weak=False)
+
 
 
 # Here's the algorithm used by this middleware for the spellchecking
