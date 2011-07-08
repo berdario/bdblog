@@ -1,0 +1,5 @@
+{% extends "main" %}
+{% block content %}
+<p>title: {{p.title}}<br />
+text: {{p.text}}</p>
+{% endblock %}

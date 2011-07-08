@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from django.shortcuts import render_to_response
 from unidecode import unidecode
 from re import sub
 from datetime import date
@@ -11,28 +12,12 @@ months = {"jan":1, "feb":2, "mar":3, "apr":4, "may": "5", "jun":6,
 	"jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
 	"january":1, "february":2, "march":3, "april":4, "june":6,
 	"july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12}
-
-def test(request, year=None, month=None, day=None, slug="", admin=False):
-	return HttpResponse("""test...
-	here are the params: <br />
-	year: %s <br />
-	month: %s <br />
-	day: %s <br />
-	slug: %s <br />
-	admin: %s <br />
-	unidecoded slug: %s""" % (year, month, day, slug, admin, unidecode(slug)))
-	
-def test_tags(request, tags, admin=False, separator="\."):
-	return HttpResponse("""
-	tags: %s <br />
-	admin: %s <br/>
-	""" % ([sub(separator," ",tag) for tag in tags.split("+")], admin))
 	
 def index(request, page, admin=False):
 	if 'application/json' in request.META['HTTP_ACCEPT_ENCODING']:
 		return HttpResponse("""TODO""", mimetype='application/json')
 	else:
-		return HttpResponse("""TODO""")
+		return render_to_response('main', locals())
 
 def post(request, slug, year, month, day, admin=False):
 	d = None
@@ -43,8 +28,7 @@ def post(request, slug, year, month, day, admin=False):
 	if _accept_json(request):
 		return HttpResponse(json.serialize([p]), mimetype='application/json')
 	else:
-		return HttpResponse("""title: %s <br />
-		text: %s""" % (p.title, p.text))
+		return render_to_response('single_post', locals())
 
 def posts(request, year, month, day, page, admin=False):
 	month = _handle_verbose_month(month)
@@ -53,10 +37,7 @@ def posts(request, year, month, day, page, admin=False):
 	if _accept_json(request):
 		return HttpResponse(json.serialize(post_list), mimetype='application/json')
 	else:
-		return HttpResponse(
-		"".join(["""<p>title: %s <br />
-		text: %s<p/>""" % (p.title, p.text) for p in post_list])
-		)
+		return render_to_response('posts', locals())
 		
 def tags(request, tags, page, separator="\.", admin=False):
 	tag_list = [sub(separator," ",tag) for tag in tags.split("+")]
@@ -64,10 +45,7 @@ def tags(request, tags, page, separator="\.", admin=False):
 	if _accept_json(request):
 		return HttpResponse(json.serialize(post_list), mimetype='application/json')
 	else:
-		return HttpResponse(
-		"".join(["""<p>title: %s <br />
-		text: %s<p/>""" % (p.title, p.text) for p in post_list])
-		)
+		return render_to_response('posts', locals())
 
 def _handle_verbose_month(month):
 	if month:

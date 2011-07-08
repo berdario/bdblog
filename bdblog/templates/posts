@@ -1,0 +1,7 @@
+{% extends "main" %}
+{% block content %}
+{% for post in post_list %}
+<p>title: {{post.title}}<br />
+text: {{post.text}}</p>
+{% endfor %}
+{% endblock %}
