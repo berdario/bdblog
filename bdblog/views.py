@@ -2,6 +2,8 @@ from django.http import HttpResponse
 from unidecode import unidecode
 from re import sub
 from datetime import date
+from django.core import serializers
+json = serializers.get_serializer('json')()
 
 from models import from_tags, get_post, get_posts
 
@@ -27,7 +29,10 @@ def test_tags(request, tags, admin=False, separator="\."):
 	""" % ([sub(separator," ",tag) for tag in tags.split("+")], admin))
 	
 def index(request, page, admin=False):
-	return HttpResponse("""TODO""")
+	if 'application/json' in request.META['HTTP_ACCEPT_ENCODING']:
+		return HttpResponse("""TODO""", mimetype='application/json')
+	else:
+		return HttpResponse("""TODO""")
 
 def post(request, slug, year, month, day, admin=False):
 	d = None
@@ -35,24 +40,34 @@ def post(request, slug, year, month, day, admin=False):
 		month = _handle_verbose_month(month)
 		d = date(int(year), month, int(day))
 	p = get_post(slug, d)
-	return HttpResponse("""title: %s <br />
-	text: %s""" % (p.title, p.text))
+	if _accept_json(request):
+		return HttpResponse(json.serialize([p]), mimetype='application/json')
+	else:
+		return HttpResponse("""title: %s <br />
+		text: %s""" % (p.title, p.text))
 
 def posts(request, year, month, day, page, admin=False):
 	month = _handle_verbose_month(month)
 	post_list = get_posts(year, month, day, page if page else 1)
-	return HttpResponse(
-	"".join(["""<p>title: %s <br />
-	text: %s<p/>""" % (p.title, p.text) for p in post_list])
-	)
+		
+	if _accept_json(request):
+		return HttpResponse(json.serialize(post_list), mimetype='application/json')
+	else:
+		return HttpResponse(
+		"".join(["""<p>title: %s <br />
+		text: %s<p/>""" % (p.title, p.text) for p in post_list])
+		)
 		
 def tags(request, tags, page, separator="\.", admin=False):
 	tag_list = [sub(separator," ",tag) for tag in tags.split("+")]
 	post_list = from_tags(tag_list, page if page else 1)
-	return HttpResponse(
-	"".join(["""<p>title: %s <br />
-	text: %s<p/>""" % (p.title, p.text) for p in post_list])
-	)
+	if _accept_json(request):
+		return HttpResponse(json.serialize(post_list), mimetype='application/json')
+	else:
+		return HttpResponse(
+		"".join(["""<p>title: %s <br />
+		text: %s<p/>""" % (p.title, p.text) for p in post_list])
+		)
 
 def _handle_verbose_month(month):
 	if month:
@@ -63,6 +78,9 @@ def _handle_verbose_month(month):
 				return months[month]
 			except KeyError:
 				raise UnknownMonth(month)
+
+def _accept_json(request):
+	return 'application/json' in request.META.get('HTTP_ACCEPT_ENCODING', '')
 
 class UnknownMonth(Exception):
 	def __init__(self, month):
