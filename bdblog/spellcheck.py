@@ -34,6 +34,8 @@ class SpellingRedirectMiddleware(object):
 		elif isinstance(exception, Post.DoesNotExist):
 			slug = re.search(r'(blog|admin)/(\d{4}/(\d{1,2}|\w{3,9})/\d{1,2}/)?(\w+[\w-]+\w+)/', request.path, re.UNICODE).group(4)
 			new_slug = self._fix_words(slug.split("-"), request)
+			if new_slug is None:
+				return page_not_found(request)
 			new_slug = "-".join(new_slug)
 			if new_slug != slug:
 				path = re.sub(re.compile(r'(blog|admin)/(\d{4}/(\d{1,2}|\w{3,9})/\d{1,2}/)?\w+[\w-]+\w+(/)', re.UNICODE), "\g<1>/"+new_slug+"\g<4>", request.path, 0)
@@ -54,6 +56,8 @@ class SpellingRedirectMiddleware(object):
 			new_tags=[]
 			for tag in tag_list:
 				new_tag = self._fix_words(tag.split(), request)
+				if new_tag is None:
+					return page_not_found(request)
 				new_tags.append(separator.join(new_tag))
 			new_tags = "+".join(new_tags)
 			if new_tags != tags:
@@ -69,7 +73,7 @@ class SpellingRedirectMiddleware(object):
 			if not self.known(word):
 				word = self.correct_word(word)
 				if not self.known(word):
-					return page_not_found(request)
+					return None
 			new_words.append(word)
 		return new_words
 
