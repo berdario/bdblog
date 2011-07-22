@@ -181,6 +181,14 @@ def word_score(word):
 	if not known(word): return 0
 	return Word.objects.filter(pk=word)[0].num
 		
+
+from django.forms import ModelForm
+
+class PostForm(ModelForm):
+	class Meta:
+		model = Post
+		#fields = ('title', 'text', 'mug', '_tags')
+
 def get_post(slug, date=None):
 	slug = unidecode(slug)
 	q = Post.objects

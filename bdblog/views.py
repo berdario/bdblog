@@ -6,7 +6,7 @@ from datetime import date
 from django.core import serializers
 json = serializers.get_serializer('json')()
 
-from models import from_tags, get_post, get_posts
+from models import from_tags, get_post, get_posts, PostForm
 
 months = {"jan":1, "feb":2, "mar":3, "apr":4, "may": "5", "jun":6,
 	"jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
@@ -46,6 +46,17 @@ def tags(request, tags, page, separator="\.", admin=False):
 		return HttpResponse(json.serialize(post_list), mimetype='application/json')
 	else:
 		return render_to_response('posts', locals())
+
+def publish_post(request, slug):
+	return HttpResponse("TODO")
+	
+def test_modelform(request):
+	f = PostForm()
+	return HttpResponse("""<form action="/blog/publish" method="post">
+%s
+<input type="Submit" value="GO"
+</form>
+	""" % (f.as_p(),))
 
 def _handle_verbose_month(month):
 	if month:
