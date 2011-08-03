@@ -44,8 +44,8 @@ class Tag(Model):
 
 
 class BasePost(Model):
-	_title = models.CharField(max_length=200)
-	_text = models.TextField()
+	title = models.CharField(max_length=200)
+	text = models.TextField()
 	pub_date = models.DateTimeField('last change', default=now, editable=False)
 	orig_date = models.DateField('date published', auto_now_add=True)
 	orig_time = models.TimeField('time published', auto_now_add=True)
@@ -60,21 +60,21 @@ class BasePost(Model):
 
 
 class Post(BasePost):
+	
 	slug = models.SlugField(validators=[validate_slug])
 	mug = models.ImageField(upload_to=set_mug_path)
-	_tags = models.ManyToManyField(Tag)
+	tags = models.ManyToManyField(Tag)
 	
 	def __init__(self, *args, **kwargs):
 		self.to_be_updated = []
 		BasePost.__init__(self, *args, **kwargs)
 		
-	@property
-	def text(self):
+	def text_getter(self):
 		return self._text
+	text_getter = filter(lambda x: x.name == "text", BasePost._meta.fields)[0].getter(text_getter)
 	
-	@text.setter
-	def text(self, text):
-		if self._text:
+	def text_setter(self, text):
+		if hasattr(self, '_text') and self._text:
 			diffed_post = BasePost( _title = self.title,
 				_text = diff( self._text , text),
 				pub_date = self.pub_date,
@@ -88,13 +88,13 @@ class Post(BasePost):
 			
 		self._text = text
 		self.pub_date = now()
+	text_setter = filter(lambda x: x.name == "text", BasePost._meta.fields)[0].setter(text_setter)
 	
-	@property
-	def title(self):
+	def title_getter(self):
 		return self._title
+	title_getter = filter(lambda x: x.name == "title", BasePost._meta.fields)[0].getter(title_getter)
 	
-	@title.setter
-	def title(self, title):
+	def title_setter(self, title):
 		self._update_title_words(-1)
 		self._title = title
 		self.slug = slugify(unidecode(title))
@@ -103,19 +103,20 @@ class Post(BasePost):
 		# can't use a set instead of list by using F(): the old change would be forgotten
 		# checking if new words are in the old title, and avoid to update them altogheter 
 		# would add more complexity than it's worth it
+	title_setter = filter(lambda x: x.name == "title", BasePost._meta.fields)[0].setter(title_setter)
 			
-	@property
-	def tags(self):
+	@tags.getter
+	def tags_getter(self):
 		return self._tags
 		
 	@tags.setter
-	def tags(self, tag_names):
+	def tags_setter(self, tag_names):
 		tag_list = [Tag.objects.get_or_create(_tag=name)[0] for name in tag_names]
 		self._tags = tag_list
 	
 	
 	def _update_title_words(self, delta=1):
-		if self.slug:
+		if hasattr(self, 'slug') and self.slug:
 			for word in self.slug.split("-"):
 				occurrence = Word.objects.get_or_create(word=word)[0]
 				occurrence._num = F('_num') + delta
