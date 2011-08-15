@@ -35,8 +35,10 @@ class Tag(Model):
 	def __init__(self, *args, **kwargs):
 		Model.__init__(self, *args, **kwargs)
 		self.ascii_tag = unidecode(self._tag) #get_or_create is called with _tag, and thus won't trigger the tag setter
-		for word in self.ascii_tag.split():
-			if not known(word):
+		words = self.ascii_tag.split()
+		known_words_list = known_words(words)
+		for word in words:
+			if not word in known_words_list:
 				Word(word).save()
 	
 	def __unicode__(self):
