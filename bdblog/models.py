@@ -172,16 +172,16 @@ def slugify(value):
 	# TODO, check this again: it seems that I wasn't really supplying re.UNICODE to the substitution
 	return re.sub(re.compile('[-\s]+', re.UNICODE), '-', value, 0)
 
-def known(word):
-	return Word.objects.filter(pk=word).exists()
-	
-def all_words():
-	return set(w.word for w in Word.objects.all())
 
-def word_score(word):
-	if not known(word): return 0
-	return Word.objects.filter(pk=word)[0].num
-		
+def known_words(words):
+	query = Q()
+	for word in words:
+		query |= Q(pk=word)
+	return Word.objects.filter(query)
+
+def all_words():
+	return set(Word.objects.values_list('word', flat=True))
+
 
 from django.forms import ModelForm
 
