@@ -38,8 +38,9 @@ class Tag(Model):
 		words = self.ascii_tag.split()
 		known_words_list = known_words(words)
 		for word in words:
-			if not word in known_words_list:
-				Word(word).save()
+			new_word = Word(word)
+			if not new_word in known_words_list:
+				new_word.save()
 	
 	def __unicode__(self):
 		return self.tag
@@ -68,6 +69,8 @@ class Post(BasePost):
 	tags = models.ManyToManyField(Tag)
 	
 	def __init__(self, *args, **kwargs):
+		from collections import defaultdict
+		self.changed_words = defaultdict(lambda : 0)
 		self.to_be_updated = []
 		BasePost.__init__(self, *args, **kwargs)
 		
@@ -119,10 +122,13 @@ class Post(BasePost):
 	
 	def _update_title_words(self, delta=1):
 		if hasattr(self, 'slug') and self.slug:
-			for word in self.slug.split("-"):
-				occurrence = Word.objects.get_or_create(word=word)[0]
-				occurrence._num = F('_num') + delta
-				self.to_be_updated.append(occurrence)
+			tokens = self.slug.split("-")
+			previous_words = [w.word for w in known_words(tokens)]
+			new_words = [Word(word) for word in tokens if word not in previous_words]
+			for word in new_words:
+				word.save()
+			for word in tokens:
+				self.changed_words[word]+=delta
 	
 	def delete(self, *args, **kwargs):
 		self._update_title_words(-1)
@@ -130,6 +136,17 @@ class Post(BasePost):
 		BasePost.delete(self, *args, **kwargs)
 	
 	def save(self, *args, **kwargs):
+		changes = defaultdict(list)
+		for k,v in self.changed_words.iteritems():
+			changes[v].append(k)
+		for delta, words in changes.iteritems():
+			if delta != 0:
+				query = Q()
+				for word in words:
+					query |= Q(word=word)
+				Word.objects.filter(query).update(_num=F('_num') + delta)
+		self.changed_words.clear()
+		
 		for other_model in self.to_be_updated:
 			other_model.save()
 		self.to_be_updated = []
