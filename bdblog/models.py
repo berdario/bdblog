@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models import Model, F, Q
 
 now = datetime.datetime.now
+property_field = models.property_field
 
 def diff(a,b):
 	return ""
@@ -23,7 +24,7 @@ class Tag(Model):
 	_tag = models.CharField(max_length=200)
 	ascii_tag = models.CharField(max_length=500, validators=[RegexValidator('^[a-z ]*$')])
 	
-	@property
+	@property_field(_tag)
 	def tag(self):
 		return self._tag
 		
@@ -31,10 +32,6 @@ class Tag(Model):
 	def tag(self, value):
 		self._tag = value
 		self.ascii_tag = unidecode(value)
-	
-	def __init__(self, *args, **kwargs):
-		Model.__init__(self, *args, **kwargs)
-		self.ascii_tag = unidecode(self._tag) #get_or_create is called with _tag, and thus won't trigger the tag setter
 		for word in self.ascii_tag.split():
 			if not known(word):
 				Word(word).save()
@@ -44,8 +41,8 @@ class Tag(Model):
 
 
 class BasePost(Model):
-	title = models.CharField(max_length=200)
-	text = models.TextField()
+	_title = models.CharField(max_length=200)
+	_text = models.TextField()
 	pub_date = models.DateTimeField('last change', default=now, editable=False)
 	orig_date = models.DateField('date published', auto_now_add=True)
 	orig_time = models.TimeField('time published', auto_now_add=True)
@@ -60,21 +57,21 @@ class BasePost(Model):
 
 
 class Post(BasePost):
-	
 	slug = models.SlugField(validators=[validate_slug])
 	mug = models.ImageField(upload_to=set_mug_path)
-	tags = models.ManyToManyField(Tag)
+	_tags = models.ManyToManyField(Tag)
 	
 	def __init__(self, *args, **kwargs):
 		self.to_be_updated = []
 		BasePost.__init__(self, *args, **kwargs)
 		
-	def text_getter(self):
+	@property_field(filter(lambda x: x.name == "_text", BasePost._meta.fields)[0])
+	def text(self):
 		return self._text
-	text_getter = filter(lambda x: x.name == "text", BasePost._meta.fields)[0].getter(text_getter)
 	
-	def text_setter(self, text):
-		if hasattr(self, '_text') and self._text:
+	@text.setter
+	def text(self, text):
+		if hasattr(self, '_text') and self._text and text != self._text:
 			diffed_post = BasePost( _title = self.title,
 				_text = diff( self._text , text),
 				pub_date = self.pub_date,
@@ -88,13 +85,13 @@ class Post(BasePost):
 			
 		self._text = text
 		self.pub_date = now()
-	text_setter = filter(lambda x: x.name == "text", BasePost._meta.fields)[0].setter(text_setter)
 	
-	def title_getter(self):
+	@property_field(filter(lambda x: x.name == "_title", BasePost._meta.fields)[0])
+	def title(self):
 		return self._title
-	title_getter = filter(lambda x: x.name == "title", BasePost._meta.fields)[0].getter(title_getter)
 	
-	def title_setter(self, title):
+	@title.setter
+	def title(self, title):
 		self._update_title_words(-1)
 		self._title = title
 		self.slug = slugify(unidecode(title))
@@ -103,15 +100,14 @@ class Post(BasePost):
 		# can't use a set instead of list by using F(): the old change would be forgotten
 		# checking if new words are in the old title, and avoid to update them altogheter 
 		# would add more complexity than it's worth it
-	title_setter = filter(lambda x: x.name == "title", BasePost._meta.fields)[0].setter(title_setter)
 			
-	@tags.getter
-	def tags_getter(self):
+	@property_field(_tags)
+	def tags(self):
 		return self._tags
 		
 	@tags.setter
-	def tags_setter(self, tag_names):
-		tag_list = [Tag.objects.get_or_create(_tag=name)[0] for name in tag_names]
+	def tags(self, tag_names):
+		tag_list = [Tag.objects.get_or_create(tag=name)[0] for name in tag_names]
 		self._tags = tag_list
 	
 	
@@ -188,7 +184,7 @@ from django.forms import ModelForm
 class PostForm(ModelForm):
 	class Meta:
 		model = Post
-		#fields = ('title', 'text', 'mug', '_tags')
+		fields = ('title', 'text', 'mug', 'tags')
 
 def get_post(slug, date=None):
 	slug = unidecode(slug)
