@@ -8,17 +8,20 @@ from django.views.defaults import page_not_found
 from django.db.models.signals import post_save
 
 from views import UnknownMonth, months
-from models import Post, Tag, known, word_score, all_words
+from models import Post, Tag, known_words, all_words
 
 word_set = all_words()
 
 class SpellingRedirectMiddleware(object):
 	def __init__(self):
-		self.correct_month = partial(correct, lambda m: m in months, lambda m: 1)
+		self.correct_month = partial(correct, lambda m: m in months)
 
 		self.known = lambda w: w in word_set
-		#self.correct_word = partial(correct, known, word_score)
-		self.correct_word = partial(correct, self.known, word_score)
+		def select_word(words):
+			words = known_words(words)
+			max(ws, key=lambda w: w.num).word
+		
+		self.correct_word = partial(correct, self.known, select=select_word)
 		
 		
 	def process_exception(self, request, exception):
@@ -102,12 +105,13 @@ def edits1(word):
 	deletes = [a + b[1:] for a, b in splits if b]
 	transposes = [a + b[1] + b[0] + b[2:] for a, b in splits if len(b)>1]
 	replaces = [a + c + b[1:] for a, b in splits for c in alphabet if b]
-	inserts = [a + c + b	 for a, b in splits for c in alphabet]
+	inserts = [a + c + b for a, b in splits for c in alphabet]
 	return set(deletes + transposes + replaces + inserts)
 
 def known_edits2(word, known):
 	return set(e2 for e1 in edits1(word) for e2 in edits1(e1) if known(e2))
 
-def correct(known_func, score, word):
+def correct(known_func, word, select=max):
 	candidates = filter(known_func, edits1(word)) or known_edits2(word, known_func) or [word]
-	return max(candidates, key=score)
+	return select(candidates)
+	# pay attention: it may return a list

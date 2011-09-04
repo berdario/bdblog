@@ -32,9 +32,12 @@ class Tag(Model):
 	def tag(self, value):
 		self._tag = value
 		self.ascii_tag = unidecode(value)
-		for word in self.ascii_tag.split():
-			if not known(word):
-				Word(word).save()
+		words = self.ascii_tag.split()
+		known_words_list = known_words(words)
+		for word in words:
+			new_word = Word(word)
+			if not new_word in known_words_list:
+				new_word.save()
 	
 	def __unicode__(self):
 		return self.tag
@@ -62,6 +65,8 @@ class Post(BasePost):
 	_tags = models.ManyToManyField(Tag)
 	
 	def __init__(self, *args, **kwargs):
+		from collections import defaultdict
+		self.changed_words = defaultdict(lambda : 0)
 		self.to_be_updated = []
 		BasePost.__init__(self, *args, **kwargs)
 		
@@ -113,10 +118,13 @@ class Post(BasePost):
 	
 	def _update_title_words(self, delta=1):
 		if hasattr(self, 'slug') and self.slug:
-			for word in self.slug.split("-"):
-				occurrence = Word.objects.get_or_create(word=word)[0]
-				occurrence._num = F('_num') + delta
-				self.to_be_updated.append(occurrence)
+			tokens = self.slug.split("-")
+			previous_words = [w.word for w in known_words(tokens)]
+			new_words = [Word(word) for word in tokens if word not in previous_words]
+			for word in new_words:
+				word.save()
+			for word in tokens:
+				self.changed_words[word]+=delta
 	
 	def delete(self, *args, **kwargs):
 		self._update_title_words(-1)
@@ -124,6 +132,17 @@ class Post(BasePost):
 		BasePost.delete(self, *args, **kwargs)
 	
 	def save(self, *args, **kwargs):
+		changes = defaultdict(list)
+		for k,v in self.changed_words.iteritems():
+			changes[v].append(k)
+		for delta, words in changes.iteritems():
+			if delta != 0:
+				query = Q()
+				for word in words:
+					query |= Q(word=word)
+				Word.objects.filter(query).update(_num=F('_num') + delta)
+		self.changed_words.clear()
+		
 		for other_model in self.to_be_updated:
 			other_model.save()
 		self.to_be_updated = []
@@ -168,16 +187,16 @@ def slugify(value):
 	# TODO, check this again: it seems that I wasn't really supplying re.UNICODE to the substitution
 	return re.sub(re.compile('[-\s]+', re.UNICODE), '-', value, 0)
 
-def known(word):
-	return Word.objects.filter(pk=word).exists()
-	
-def all_words():
-	return set(w.word for w in Word.objects.all())
 
-def word_score(word):
-	if not known(word): return 0
-	return Word.objects.filter(pk=word)[0].num
-		
+def known_words(words):
+	query = Q()
+	for word in words:
+		query |= Q(pk=word)
+	return Word.objects.filter(query)
+
+def all_words():
+	return set(Word.objects.values_list('word', flat=True))
+
 
 from django.forms import ModelForm
 
