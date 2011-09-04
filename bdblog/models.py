@@ -1,4 +1,5 @@
 import datetime
+from collections import defaultdict
 from unidecode import unidecode
 from unicodedata import normalize
 import re
@@ -9,7 +10,6 @@ from django.db import models
 from django.db.models import Model, F, Q
 
 now = datetime.datetime.now
-property_field = models.property_field
 
 def diff(a,b):
 	return ""
@@ -21,30 +21,25 @@ def set_mug_path(instance=None, **kwargs):
 	
 	
 class Tag(Model):
-	_tag = models.CharField(max_length=200)
+	tag = models.CharField(max_length=200)
 	ascii_tag = models.CharField(max_length=500, validators=[RegexValidator('^[a-z ]*$')])
 	
-	@property_field(_tag)
-	def tag(self):
-		return self._tag
-		
-	@tag.setter
-	def tag(self, value):
-		self._tag = value
-		self.ascii_tag = unidecode(value)
+	def save(self, *args, **kwargs):
+		self.ascii_tag = unidecode(self.tag)
 		words = self.ascii_tag.split()
 		known_words_list = known_words(words)
 		for word in words:
 			new_word = Word(word)
 			if not new_word in known_words_list:
 				new_word.save()
+		Model.save(self, *args, **kwargs)
 	
 	def __unicode__(self):
 		return self.tag
 
 
 class BasePost(Model):
-	_title = models.CharField(max_length=200)
+	title = models.CharField(max_length=200)
 	_text = models.TextField()
 	pub_date = models.DateTimeField('last change', default=now, editable=False)
 	orig_date = models.DateField('date published', auto_now_add=True)
@@ -53,71 +48,58 @@ class BasePost(Model):
 	rating = models.SmallIntegerField(default=0, editable=False, validators=[MinValueValidator(0), MaxValueValidator(10)])
 		
 	def __unicode__(self):
-		return self._title + " - " + str(self.pub_date.ctime())
+		return self.title + " - " + str(self.pub_date.ctime())
 		
 	class Meta(object):
 		ordering = ['orig_date', 'orig_time']
 
 
 class Post(BasePost):
+	text = models.TextField()
 	slug = models.SlugField(validators=[validate_slug])
 	mug = models.ImageField(upload_to=set_mug_path)
 	_tags = models.ManyToManyField(Tag)
+	tags = models.CharField(max_length=200)
 	
-	def __init__(self, *args, **kwargs):
-		from collections import defaultdict
-		self.changed_words = defaultdict(lambda : 0)
-		self.to_be_updated = []
-		BasePost.__init__(self, *args, **kwargs)
-		
-	@property_field(filter(lambda x: x.name == "_text", BasePost._meta.fields)[0])
-	def text(self):
-		return self._text
-	
-	@text.setter
-	def text(self, text):
-		if hasattr(self, '_text') and self._text and text != self._text:
-			diffed_post = BasePost( _title = self.title,
+	def _handle_text_change(self, text):
+		if self._text and text != self._text:
+			diffed_post = BasePost( title = self.title,
 				_text = diff( self._text , text),
 				pub_date = self.pub_date,
 				orig_date = self.orig_date,
 				orig_time = self.orig_time,
 				previous = self.previous,
 				rating = self.rating )
-			
-			self.to_be_updated.append(diffed_post)
+						
 			self.previous = diffed_post
+			diffed_post.save()
+			self.previous = self.previous
+			# ugly hack: otherwise, since the previous hasn't been saved yet, it might not have a pk
+			# and thus the relationship would not be valid 
+			# (but in other cases django complains with a ValueError, don't know why it doesn't do it here)
 			
 		self._text = text
 		self.pub_date = now()
 	
-	@property_field(filter(lambda x: x.name == "_title", BasePost._meta.fields)[0])
-	def title(self):
-		return self._title
 	
-	@title.setter
-	def title(self, title):
-		self._update_title_words(-1)
-		self._title = title
-		self.slug = slugify(unidecode(title))
-		self._update_title_words()
-		# some words may be updated 2 times: once with -1 and once with 1
-		# can't use a set instead of list by using F(): the old change would be forgotten
-		# checking if new words are in the old title, and avoid to update them altogheter 
-		# would add more complexity than it's worth it
+	def _handle_title_change(self):
+		new_slug = slugify(unidecode(self.title))
+		if not self.slug or self.slug != new_slug:
+			self.changed_words = defaultdict(lambda : 0)
+			self._update_title_words(-1)
+			self.slug = new_slug
+			self._update_title_words()
 			
-	@property_field(_tags)
-	def tags(self):
-		return self._tags
-		
-	@tags.setter
-	def tags(self, tag_names):
-		tag_list = [Tag.objects.get_or_create(tag=name)[0] for name in tag_names]
-		self._tags = tag_list
-	
+			changes = defaultdict(list)
+			for k,v in self.changed_words.iteritems():
+				changes[v].append(k)
+			for delta, words in changes.iteritems():
+				if delta != 0:
+					known_words(words).update(_num=F('_num') + delta)
+			self.changed_words.clear()
 	
 	def _update_title_words(self, delta=1):
-		if hasattr(self, 'slug') and self.slug:
+		if self.slug:
 			tokens = self.slug.split("-")
 			previous_words = [w.word for w in known_words(tokens)]
 			new_words = [Word(word) for word in tokens if word not in previous_words]
@@ -132,25 +114,15 @@ class Post(BasePost):
 		BasePost.delete(self, *args, **kwargs)
 	
 	def save(self, *args, **kwargs):
-		changes = defaultdict(list)
-		for k,v in self.changed_words.iteritems():
-			changes[v].append(k)
-		for delta, words in changes.iteritems():
-			if delta != 0:
-				query = Q()
-				for word in words:
-					query |= Q(word=word)
-				Word.objects.filter(query).update(_num=F('_num') + delta)
-		self.changed_words.clear()
-		
-		for other_model in self.to_be_updated:
-			other_model.save()
-		self.to_be_updated = []
-		self.previous = self.previous
-		# ugly hack: otherwise, since the previous hasn't been saved yet, it might not have a pk
-		# and thus the relationship would not be valid 
-		# (but in other cases django complains with a ValueError, don't know why it doesn't do it here)
+		resave = self.pk is None
+		if not resave:
+			self._tags = [Tag.objects.get_or_create(tag=name)[0] for name in self.tags.split("+")]
+		self._handle_text_change(self.text)
+		self._handle_title_change()
 		BasePost.save(self, *args, **kwargs)
+		if resave:
+			self.save(*args, **kwargs)
+			
 	
 	def __unicode__(self):
 		return self.title

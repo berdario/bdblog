@@ -19,7 +19,7 @@ class SpellingRedirectMiddleware(object):
 		self.known = lambda w: w in word_set
 		def select_word(words):
 			words = known_words(words)
-			max(ws, key=lambda w: w.num).word
+			return max(words, key=lambda w: w.num).word
 		
 		self.correct_word = partial(correct, self.known, select=select_word)
 		
