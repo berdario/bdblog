@@ -109,7 +109,8 @@ class Post(BasePost):
 				self.changed_words[word]+=delta
 	
 	def delete(self, *args, **kwargs):
-		self._update_title_words(-1)
+		self.title = ""
+		self._handle_title_change()
 		self.save()
 		BasePost.delete(self, *args, **kwargs)
 	

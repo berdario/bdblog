@@ -1,9 +1,13 @@
+from django.core import serializers
+from django.core.urlresolvers import reverse
+from django.core.context_processors import csrf
+from django.views.generic.edit import CreateView
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from unidecode import unidecode
 from re import sub
 from datetime import date
-from django.core import serializers
+
 json = serializers.get_serializer('json')()
 
 from models import from_tags, get_post, get_posts, PostForm
@@ -24,8 +28,11 @@ def json_or_template(template):
 		return wrapped
 	return outer
 
-@json_or_template('main')
+@json_or_template('blog')
 def index(request, page, admin=False):
+	csrf_token = csrf(request)['csrf_token']
+	form = PostForm()
+	target = reverse(publish_post)
 	return ["TODO"], locals() 
 
 @json_or_template('single_post')
@@ -49,16 +56,11 @@ def tags(request, tags, page, separator="\.", admin=False):
 	post_list = from_tags(tag_list, page if page else 1)
 	return post_list, locals()
 
-def publish_post(request, slug):
-	return HttpResponse("TODO")
-	
-def test_modelform(request):
-	f = PostForm()
-	return HttpResponse("""<form action="/blog/publish" method="post">
-%s
-<input type="Submit" value="GO"
-</form>
-	""" % (f.as_p(),))
+class PublishPost(CreateView):
+	form_class = PostForm
+	template_name = "validate"
+
+publish_post = PublishPost.as_view()
 
 def _handle_verbose_month(month):
 	if month:
