@@ -33,7 +33,8 @@ def index(request, page, admin=False):
 	csrf_token = csrf(request)['csrf_token']
 	form = PostForm()
 	target = reverse(publish_post)
-	return ["TODO"], locals() 
+	post_list = get_posts(page=page if page else 1)
+	return post_list, locals() 
 
 @json_or_template('single_post')
 def post(request, slug, year, month, day, admin=False):

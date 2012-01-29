@@ -186,13 +186,15 @@ def get_post(slug, date=None):
 	return q.get(slug=slug)
 
 	
-def get_posts(year, month=None, day=None, page=1, page_range=20):
+def get_posts(year=None, month=None, day=None, page=1, page_range=20):
 	start, end = (page-1)*page_range, page*page_range
-	q = Post.objects.filter(orig_date__year=year)
-	if month:
-		q = q.filter(orig_date__month=month)
-		if day:
-			q = q.filter(orig_date__day=day)
+	q = Post.objects.all()
+	if year:
+		q = q.filter(orig_date__year=year)
+		if month:
+			q = q.filter(orig_date__month=month)
+			if day:
+				q = q.filter(orig_date__day=day)
 	return q[start:end]
 
 

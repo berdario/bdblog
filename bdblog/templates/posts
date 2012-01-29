@@ -1,5 +1,6 @@
 {% extends "main" %}
 {% block content %}
+{% block before_posts %}{% endblock %}
 {% for post in post_list %}
 <p>title: {{post.title}}<br />
 text: {{post.text}}</p>
