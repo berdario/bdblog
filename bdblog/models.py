@@ -14,11 +14,12 @@ from django.db.models import Model, F, Q
 now = datetime.datetime.now
 
 def diff(a,b):
-	return ""
+	return "TODO"
 	
-def set_mug_path(instance=None, **kwargs):
+def set_mug_path(instance, filename):
 	d = instance.orig_date
-	path = "mugs/%s/%s/%s-%s" % d.year, d.month, d.day, instance.slug
+	ext = filename.split(".")[-1]
+	path = "mugs/%s/%s-%s-%s.%s" % (d.year, d.day, d.month, instance.slug, ext)
 	return path
 	
 	

@@ -1,6 +1,6 @@
 {% extends "main" %}
 {% block content %}
-<form action="{{ target }}" method="post">
+<form enctype="multipart/form-data" action="{{ target }}" method="post">
 {% csrf_token %}
 {{ form.as_p }}
 <input type="Submit" value="GO" />
