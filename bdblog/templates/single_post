@@ -1,6 +1,7 @@
 {% extends "main" %}
 {% block content %}
 <p>title: {{p.title}}<br />
+<img src="{{ MEDIA_URL }}{{ p.mug.name }}" alt="{{ p.orig_date }} mugshot" width="100" /> <br />
 text: {{p.text}}</p>
 {% if admin %}
 <form action="{{ target }}" method="post">

@@ -2,6 +2,7 @@ from django.core import serializers
 from django.core.urlresolvers import reverse
 from django.core.context_processors import csrf
 from django.views.generic.edit import CreateView
+from django.template import RequestContext
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from unidecode import unidecode
@@ -27,7 +28,7 @@ def json_or_template(template):
 			if _accept_json(request):
 				return HttpResponse(json.serialize(result), mimetype='application/json')
 			else:
-				return render_to_response(template, context)
+				return render_to_response(template, context, context_instance=RequestContext(request))
 		return wrapped
 	return outer
 

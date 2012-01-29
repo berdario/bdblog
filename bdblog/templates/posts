@@ -3,6 +3,7 @@
 {% block before_posts %}{% endblock %}
 {% for post, form in post_list %}
 <p>title: {{post.title}}<br />
+<img src="{{ MEDIA_URL }}{{ post.mug.name }}" alt="{{ post.orig_date }} mugshot" width="100" /> <br />
 text: {{post.text}}</p>
 {% if admin %}
 <form action="{{ target }}" method="post">

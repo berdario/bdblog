@@ -1,3 +1,4 @@
+import os
 import datetime
 from collections import defaultdict
 from unidecode import unidecode
@@ -19,7 +20,8 @@ def diff(a,b):
 def set_mug_path(instance, filename):
 	d = instance.orig_date
 	ext = filename.split(".")[-1]
-	path = "mugs/%s/%s-%s-%s.%s" % (d.year, d.day, d.month, instance.slug, ext)
+	dest_file = "%s-%s-%s.%s" % (d.day, d.month, instance.slug, ext)
+	path = os.path.join("mugs", str(d.year), dest_file)
 	return path
 	
 	
