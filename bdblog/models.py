@@ -5,6 +5,8 @@ from unicodedata import normalize
 import re
 from django.template.defaultfilters import stringfilter
 from django.core.validators import validate_slug, RegexValidator, MinValueValidator, MaxValueValidator
+from django.forms import ModelForm
+from django.forms.models import modelformset_factory
 
 from django.db import models
 from django.db.models import Model, F, Q
@@ -171,12 +173,12 @@ def all_words():
 	return set(Word.objects.values_list('word', flat=True))
 
 
-from django.forms import ModelForm
-
 class PostForm(ModelForm):
 	class Meta:
 		model = Post
 		fields = ('title', 'text', 'mug', 'tags')
+
+PostFormSet = modelformset_factory(Post, form=PostForm)
 
 def get_post(slug, date=None):
 	slug = unidecode(slug)

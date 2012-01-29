@@ -1,8 +1,15 @@
 {% extends "main" %}
 {% block content %}
 {% block before_posts %}{% endblock %}
-{% for post in post_list %}
+{% for post, form in post_list %}
 <p>title: {{post.title}}<br />
 text: {{post.text}}</p>
+{% if admin %}
+<form action="{{ target }}" method="post">
+{% csrf_token %}
+{{ form.as_p }}
+<input type="Submit" value="GO"
+</form>
+{% endif %}
 {% endfor %}
 {% endblock %}

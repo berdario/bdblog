@@ -2,4 +2,11 @@
 {% block content %}
 <p>title: {{p.title}}<br />
 text: {{p.text}}</p>
+{% if admin %}
+<form action="{{ target }}" method="post">
+{% csrf_token %}
+{{ form.as_p }}
+<input type="Submit" value="GO" />
+</form>
+{% endif %}
 {% endblock %}

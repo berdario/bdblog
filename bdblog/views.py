@@ -10,7 +10,7 @@ from datetime import date
 
 json = serializers.get_serializer('json')()
 
-from models import from_tags, get_post, get_posts, PostForm
+from models import from_tags, get_post, get_posts, PostForm, PostFormSet
 
 months = {"jan":1, "feb":2, "mar":3, "apr":4, "may": "5", "jun":6,
 	"jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
@@ -20,8 +20,11 @@ months = {"jan":1, "feb":2, "mar":3, "apr":4, "may": "5", "jun":6,
 def json_or_template(template):
 	def outer(view):
 		def wrapped(*args, **kwargs):
+			request = args[0]
 			result, context = view(*args, **kwargs)
-			if _accept_json(args[0]):
+			context.update(csrf(request))
+			context['target'] = reverse(publish_post)
+			if _accept_json(request):
 				return HttpResponse(json.serialize(result), mimetype='application/json')
 			else:
 				return render_to_response(template, context)
@@ -30,10 +33,10 @@ def json_or_template(template):
 
 @json_or_template('blog')
 def index(request, page, admin=False):
-	csrf_token = csrf(request)['csrf_token']
 	form = PostForm()
 	target = reverse(publish_post)
 	post_list = get_posts(page=page if page else 1)
+	post_list = zip(post_list, PostFormSet(queryset=post_list))
 	return post_list, locals() 
 
 @json_or_template('single_post')
@@ -43,18 +46,21 @@ def post(request, slug, year, month, day, admin=False):
 		month = _handle_verbose_month(month)
 		d = date(int(year), month, int(day))
 	p = get_post(slug, d)
+	form = PostForm(instance=p)
 	return [p], locals()
 
 @json_or_template('posts')
 def posts(request, year, month, day, page, admin=False):
 	month = _handle_verbose_month(month)
 	post_list = get_posts(year, month, day, page if page else 1)
+	post_list = zip(post_list, PostFormSet(queryset=post_list))
 	return post_list, locals()
 
 @json_or_template('posts')
 def tags(request, tags, page, separator="\.", admin=False):
 	tag_list = [sub(separator," ",tag) for tag in tags.split("+")]
 	post_list = from_tags(tag_list, page if page else 1)
+	post_list = zip(post_list, PostFormSet(queryset=post_list))
 	return post_list, locals()
 
 class PublishPost(CreateView):
