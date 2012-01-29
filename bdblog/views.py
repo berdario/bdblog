@@ -34,10 +34,9 @@ def json_or_template(template):
 @json_or_template('blog')
 def index(request, page, admin=False):
 	form = PostForm()
-	target = reverse(publish_post)
-	post_list = get_posts(page=page if page else 1)
-	post_list = zip(post_list, PostFormSet(queryset=post_list))
-	return post_list, locals() 
+	bare_posts = get_posts(page=page if page else 1)
+	post_list = zip(bare_posts, PostFormSet(queryset=bare_posts))
+	return bare_posts, locals() 
 
 @json_or_template('single_post')
 def post(request, slug, year, month, day, admin=False):
@@ -52,16 +51,16 @@ def post(request, slug, year, month, day, admin=False):
 @json_or_template('posts')
 def posts(request, year, month, day, page, admin=False):
 	month = _handle_verbose_month(month)
-	post_list = get_posts(year, month, day, page if page else 1)
-	post_list = zip(post_list, PostFormSet(queryset=post_list))
-	return post_list, locals()
+	bare_posts = get_posts(year, month, day, page if page else 1)
+	post_list = zip(bare_posts, PostFormSet(queryset=bare_posts))
+	return bare_posts, locals()
 
 @json_or_template('posts')
 def tags(request, tags, page, separator="\.", admin=False):
 	tag_list = [sub(separator," ",tag) for tag in tags.split("+")]
-	post_list = from_tags(tag_list, page if page else 1)
-	post_list = zip(post_list, PostFormSet(queryset=post_list))
-	return post_list, locals()
+	bare_posts = from_tags(tag_list, page if page else 1)
+	post_list = zip(bare_posts, PostFormSet(queryset=bare_posts))
+	return bare_posts, locals()
 
 class PublishPost(CreateView):
 	form_class = PostForm

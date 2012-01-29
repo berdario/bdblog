@@ -204,7 +204,7 @@ def from_tags(tags, page=1, page_range=20):
 	start, end = (page-1)*page_range, page*page_range
 	q = Post.objects
 	for t in tags:
-		tag = Tag.objects.get(Q(_tag=t) | Q(ascii_tag=t))
+		tag = Tag.objects.get(Q(tag=t) | Q(ascii_tag=t))
 		q = q.filter(_tags=tag)
 	return q[start:end]
 	

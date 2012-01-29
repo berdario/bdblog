@@ -27,7 +27,7 @@ def test_blog():
 	p.text="changed!"
 	p.save()
 	
-	print Tag.objects.filter(_tag="this blog")[0].post_set.count() #should == 1
+	print Tag.objects.filter(tag="this blog")[0].post_set.count() #should == 1
 	
 	newp = Post()
 	newp.title=u"this"
@@ -40,7 +40,7 @@ def test_blog():
 	print Word.objects.get(pk="this").num #should == 2
 	
 	print Word.objects.get(pk="aeble").num #should == 1
-	Tag.objects.filter(_tag=u"æble")[0].post_set.all()[0].delete()
+	Tag.objects.filter(tag=u"æble")[0].post_set.all()[0].delete()
 	
 	print Word.objects.get(pk="this").num #should == 1
 	
