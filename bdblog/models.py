@@ -12,11 +12,10 @@ from django.forms.models import modelformset_factory
 from django.db import models
 from django.db.models import Model, F, Q
 
+from differ import diff
+
 now = datetime.datetime.now
 
-def diff(a,b):
-	return "TODO"
-	
 def set_mug_path(instance, filename):
 	d = instance.orig_date
 	ext = filename.split(".")[-1]
