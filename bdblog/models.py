@@ -6,7 +6,7 @@ from unicodedata import normalize
 import re
 from django.template.defaultfilters import stringfilter
 from django.core.validators import validate_slug, RegexValidator, MinValueValidator, MaxValueValidator
-from django.forms import IntegerField, HiddenInput, ModelForm
+from django.forms import IntegerField, ModelForm
 from django.forms.models import modelformset_factory
 
 from django.db import models
@@ -176,9 +176,6 @@ def all_words():
 
 
 class PostForm(ModelForm):
-	id = IntegerField(widget=HiddenInput())
-	# I can't simply put id inside the meta fields because it's
-	# "Not represented in the form", or totally absent (changing the widget isn't enough)
 	class Meta:
 		model = Post
 		fields = ('title', 'text', 'mug', 'tags')

@@ -8,6 +8,8 @@ from django.shortcuts import render_to_response
 from unidecode import unidecode
 from re import sub
 from datetime import date
+from collections import Iterable
+from itertools import izip
 
 json = serializers.get_serializer('json')()
 
@@ -24,7 +26,11 @@ def json_or_template(template):
 			request = args[0]
 			result, context = view(*args, **kwargs)
 			context.update(csrf(request))
-			context['target'] = reverse(update_post)
+			if isinstance(result, Iterable):
+				context['post_list'] = [(post, form, reverse(update_post, args=[p.pk])) for p,(post, form) in izip(result, context['post_list'])]
+			else:
+				context['target'] = reverse(update_post, args=[result.pk])
+				result = [result]
 			if _accept_json(request):
 				return HttpResponse(json.serialize(result), mimetype='application/json')
 			else:
@@ -37,7 +43,7 @@ def index(request, page, admin=False):
 	form = PostForm()
 	publish = reverse(publish_post)
 	bare_posts = get_posts(page=page if page else 1)
-	post_list = zip(bare_posts, PostFormSet(queryset=bare_posts))
+	post_list = izip(bare_posts, PostFormSet(queryset=bare_posts))
 	return bare_posts, locals() 
 
 @json_or_template('single_post')
@@ -47,21 +53,21 @@ def post(request, slug, year, month, day, admin=False):
 		month = _handle_verbose_month(month)
 		d = date(int(year), month, int(day))
 	p = get_post(slug, d)
-	form = PostForm(instance=p, initial={'id': p.id})
-	return [p], locals()
+	form = PostForm(instance=p)
+	return p, locals()
 
 @json_or_template('posts')
 def posts(request, year, month, day, page, admin=False):
 	month = _handle_verbose_month(month)
 	bare_posts = get_posts(year, month, day, page if page else 1)
-	post_list = zip(bare_posts, PostFormSet(queryset=bare_posts))
+	post_list = izip(bare_posts, PostFormSet(queryset=bare_posts))
 	return bare_posts, locals()
 
 @json_or_template('posts')
 def tags(request, tags, page, separator="\.", admin=False):
 	tag_list = [sub(separator," ",tag) for tag in tags.split("+")]
 	bare_posts = from_tags(tag_list, page if page else 1)
-	post_list = zip(bare_posts, PostFormSet(queryset=bare_posts))
+	post_list = izip(bare_posts, PostFormSet(queryset=bare_posts))
 	return bare_posts, locals()
 
 class PublishPost(CreateView):
@@ -79,9 +85,6 @@ class UpdatePost(UpdateView):
 	form_class = PostForm
 	model = form_class.Meta.model
 	template_name = "validate"
-	
-	def get_object(self, queryset=None):
-		return self.model.objects.get(pk=self.request.POST['id'])
 
 update_post = UpdatePost.as_view()
 
