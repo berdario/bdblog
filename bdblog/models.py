@@ -75,13 +75,11 @@ class Post(BasePost):
 				previous = self.previous,
 				rating = self.rating )
 						
-			self.previous = diffed_post
-			diffed_post.save()
-			self.previous = self.previous
-			# ugly hack: otherwise, since the previous hasn't been saved yet, it might not have a pk
-			# and thus the relationship would not be valid 
-			# (but in other cases django complains with a ValueError, don't know why it doesn't do it here)
-			
+			self.previous = None
+			self._temp_previous = diffed_post
+			# making previous None, to avoid key collision in the 1:1 rel
+			# after calling the super().save(), it's safe to save the diffed_post and bind it to self.previous
+		
 		self._text = text
 		self.pub_date = now()
 	
@@ -121,10 +119,16 @@ class Post(BasePost):
 	def save(self, *args, **kwargs):
 		resave = self.pk is None
 		if not resave:
+			# the very first time, you can't create a m2m relationship 
 			self._tags = [Tag.objects.get_or_create(tag=name)[0] for name in self.tags.split("+")]
 		self._handle_text_change(self.text)
 		self._handle_title_change()
 		BasePost.save(self, *args, **kwargs)
+		if self._temp_previous:
+			self.previous = self._temp_previous
+			self.previous.save()
+			self._temp_previous = None
+			resave = True
 		if resave:
 			self.save(*args, **kwargs)
 			
