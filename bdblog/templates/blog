@@ -1,7 +1,7 @@
 {% extends "posts" %}
 {% block before_posts %}
 {% if admin %}
-<form enctype="multipart/form-data" action="{{ target }}" method="post">
+<form enctype="multipart/form-data" action="{{ publish }}" method="post">
 {% csrf_token %}
 {{ form.as_p }}
 <input type="Submit" value="GO" />

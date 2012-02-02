@@ -1,7 +1,7 @@
 from django.core import serializers
 from django.core.urlresolvers import reverse
 from django.core.context_processors import csrf
-from django.views.generic.edit import CreateView
+from django.views.generic.edit import CreateView, UpdateView
 from django.template import RequestContext
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
@@ -11,7 +11,7 @@ from datetime import date
 
 json = serializers.get_serializer('json')()
 
-from models import from_tags, get_post, get_posts, PostForm, PostFormSet
+from models import from_tags, get_post, get_posts, PostForm, MugForm, PostFormSet
 
 months = {"jan":1, "feb":2, "mar":3, "apr":4, "may": "5", "jun":6,
 	"jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
@@ -24,7 +24,7 @@ def json_or_template(template):
 			request = args[0]
 			result, context = view(*args, **kwargs)
 			context.update(csrf(request))
-			context['target'] = reverse(publish_post)
+			context['target'] = reverse(update_post)
 			if _accept_json(request):
 				return HttpResponse(json.serialize(result), mimetype='application/json')
 			else:
@@ -35,6 +35,7 @@ def json_or_template(template):
 @json_or_template('blog')
 def index(request, page, admin=False):
 	form = PostForm()
+	publish = reverse(publish_post)
 	bare_posts = get_posts(page=page if page else 1)
 	post_list = zip(bare_posts, PostFormSet(queryset=bare_posts))
 	return bare_posts, locals() 
@@ -46,7 +47,7 @@ def post(request, slug, year, month, day, admin=False):
 		month = _handle_verbose_month(month)
 		d = date(int(year), month, int(day))
 	p = get_post(slug, d)
-	form = PostForm(instance=p)
+	form = PostForm(instance=p, initial={'id': p.id})
 	return [p], locals()
 
 @json_or_template('posts')
@@ -66,8 +67,27 @@ def tags(request, tags, page, separator="\.", admin=False):
 class PublishPost(CreateView):
 	form_class = PostForm
 	template_name = "validate"
+	def get_success_url(self):
+		if self.object:
+			if not (self.object.mug.width == self.object.mug.height == 100):
+				return reverse(CreateThumbnail.as_view())
+		return super(PublishPost, self).get_success_url()
 
 publish_post = PublishPost.as_view()
+
+class UpdatePost(UpdateView):
+	form_class = PostForm
+	model = form_class.Meta.model
+	template_name = "validate"
+	
+	def get_object(self, queryset=None):
+		return self.model.objects.get(pk=self.request.POST['id'])
+
+update_post = UpdatePost.as_view()
+
+class CreateThumbnail(UpdateView):
+	form_class = MugForm
+	template_name = "validate"
 
 def _handle_verbose_month(month):
 	if month:
