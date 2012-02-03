@@ -6,12 +6,13 @@ from unicodedata import normalize
 import re
 from django.template.defaultfilters import stringfilter
 from django.core.validators import validate_slug, RegexValidator, MinValueValidator, MaxValueValidator
-from django.forms import IntegerField, ModelForm
+from django.forms import IntegerField, HiddenInput, ModelForm
 from django.forms.models import modelformset_factory
 
 from django.db import models
 from django.db.models import Model, F, Q
 
+from PIL import Image
 from differ import diff
 
 now = datetime.datetime.now
@@ -64,6 +65,7 @@ class Post(BasePost):
 	mug = models.ImageField(upload_to=set_mug_path)
 	_tags = models.ManyToManyField(Tag)
 	tags = models.CharField(max_length=200)
+	_temp_previous = None
 	
 	def _handle_text_change(self, text):
 		if self._text and text != self._text:
@@ -180,26 +182,31 @@ def all_words():
 
 
 class PostForm(ModelForm):
+	x = IntegerField(min_value=1, widget=HiddenInput(), required=False)
+	y = IntegerField(min_value=1, widget=HiddenInput(), required=False)
+	size = IntegerField(min_value=1, widget=HiddenInput(), required=False)
+
 	class Meta:
 		model = Post
 		fields = ('title', 'text', 'mug', 'tags')
 
-
-class MugForm(ModelForm):
-	x = IntegerField(min_value=1)
-	y = IntegerField(min_value=1)
-	size = IntegerField(min_value=1)
-	
-	class Meta:
-		model = Post
-		fields = ('mug',)
-
-	def save():
-		#make_thumb(self.
-		raise Exception()
-		super(MugForm, self).save()
+	def save(self):
+		mug, x, y, size = [self.cleaned_data[key] for key in ('mug', 'x', 'y', 'size')]
+		if (mug.width, mug.height) != (100,100):
+			if not any([x, y, size]):
+				# TODO temp workaround
+				x = y = 0
+				size = min(mug.width, mug.height)
+			make_thumb(mug, (x, y), size)
+		super(PostForm, self).save()
 
 PostFormSet = modelformset_factory(Post, form=PostForm)
+
+def make_thumb(mug, coord, size):
+	image = Image.open(mug.path)
+	image = image.crop((coord[0], coord[1], coord[0] + size, coord[1] + size))
+	image.thumbnail((100, 100))
+	image.save(mug.path)
 
 def get_post(slug, date=None):
 	slug = unidecode(slug)

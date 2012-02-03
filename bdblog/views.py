@@ -13,7 +13,7 @@ from itertools import izip
 
 json = serializers.get_serializer('json')()
 
-from models import from_tags, get_post, get_posts, PostForm, MugForm, PostFormSet
+from models import from_tags, get_post, get_posts, PostForm, PostFormSet
 
 months = {"jan":1, "feb":2, "mar":3, "apr":4, "may": "5", "jun":6,
 	"jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
@@ -70,27 +70,26 @@ def tags(request, tags, page, separator="\.", admin=False):
 	post_list = izip(bare_posts, PostFormSet(queryset=bare_posts))
 	return bare_posts, locals()
 
-class PublishPost(CreateView):
+class ThumbMixin(object):
+	def get_success_url(self):
+		obj = self.object or self.get_object()
+		if obj:
+			if not (obj.mug.width == obj.mug.height == 100):
+				return reverse(update_post, args=[obj.pk])
+		return obj.get_absolute_url()
+
+class PublishPost(ThumbMixin, CreateView):
 	form_class = PostForm
 	template_name = "validate"
-	def get_success_url(self):
-		if self.object:
-			if not (self.object.mug.width == self.object.mug.height == 100):
-				return reverse(CreateThumbnail.as_view())
-		return super(PublishPost, self).get_success_url()
 
 publish_post = PublishPost.as_view()
 
-class UpdatePost(UpdateView):
+class UpdatePost(ThumbMixin, UpdateView):
 	form_class = PostForm
 	model = form_class.Meta.model
 	template_name = "validate"
 
 update_post = UpdatePost.as_view()
-
-class CreateThumbnail(UpdateView):
-	form_class = MugForm
-	template_name = "validate"
 
 def _handle_verbose_month(month):
 	if month:
