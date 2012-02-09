@@ -1,6 +1,7 @@
 from django.core import serializers
 from django.core.urlresolvers import reverse
 from django.core.context_processors import csrf
+from django.core.files.images import get_image_dimensions
 from django.views.generic.edit import CreateView, UpdateView
 from django.template import RequestContext
 from django.http import HttpResponse
@@ -74,7 +75,8 @@ def tags(request, tags, page, separator="\.", admin=False):
 class ThumbMixin(object):
 	def get_success_url(self):
 		obj = self.object or self.get_object()
-		if (obj.mug.width, obj.mug.height) != (100, 100):
+		obj.mug.flush()
+		if get_image_dimensions(obj.mug) != (100, 100):
 			return reverse(update_post, args=[obj.pk])
 		return super(ThumbMixin, self).get_success_url()
 
