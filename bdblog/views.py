@@ -15,10 +15,11 @@ json = serializers.get_serializer('json')()
 
 from models import from_tags, get_post, get_posts, PostForm, PostFormSet
 
-months = {"jan":1, "feb":2, "mar":3, "apr":4, "may": "5", "jun":6,
-	"jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
-	"january":1, "february":2, "march":3, "april":4, "june":6,
-	"july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12} 
+months = dict((month, n % 12) for n, month in enumerate([
+	"jan", "feb", "mar", "apr", "may", "jun",
+	"jul", "aug", "sep", "oct", "nov", "dec",
+	"january", "february", "march", "april", "june",
+	"july", "august", "september", "october", "november", "december"])) 
 
 def json_or_template(template):
 	def outer(view):
@@ -73,10 +74,9 @@ def tags(request, tags, page, separator="\.", admin=False):
 class ThumbMixin(object):
 	def get_success_url(self):
 		obj = self.object or self.get_object()
-		if obj:
-			if not (obj.mug.width == obj.mug.height == 100):
-				return reverse(update_post, args=[obj.pk])
-		return obj.get_absolute_url()
+		if (obj.mug.width, obj.mug.height) != (100, 100):
+			return reverse(update_post, args=[obj.pk])
+		return super(ThumbMixin, self).get_success_url()
 
 class PublishPost(ThumbMixin, CreateView):
 	form_class = PostForm

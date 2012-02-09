@@ -6,6 +6,7 @@ from unicodedata import normalize
 import re
 from django.template.defaultfilters import stringfilter
 from django.core.validators import validate_slug, RegexValidator, MinValueValidator, MaxValueValidator
+from django.core.files.images import get_image_dimensions
 from django.forms import IntegerField, HiddenInput, ModelForm
 from django.forms.models import modelformset_factory
 
@@ -190,15 +191,12 @@ class PostForm(ModelForm):
 		model = Post
 		fields = ('title', 'text', 'mug', 'tags')
 
-	def save(self):
+	def save(self, *args, **kwargs):
 		mug, x, y, size = [self.cleaned_data[key] for key in ('mug', 'x', 'y', 'size')]
-		if (mug.width, mug.height) != (100,100):
-			if not any([x, y, size]):
-				# TODO temp workaround
-				x = y = 0
-				size = min(mug.width, mug.height)
-			make_thumb(mug, (x, y), size)
-		super(PostForm, self).save()
+		if get_image_dimensions(mug) != (100,100):
+			if all([x, y, size]):
+				make_thumb(mug, (x, y), size)
+		return super(PostForm, self).save(*args, **kwargs)
 
 PostFormSet = modelformset_factory(Post, form=PostForm)
 

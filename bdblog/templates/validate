@@ -2,6 +2,7 @@
 {% block content %}
 <form enctype="multipart/form-data" action="{{ target }}" method="post">
 {% csrf_token %}
+<img src="{{ MEDIA_URL }}{{ object.mug.name }}" alt="mugshot" id="jcrop_target" /> <br />
 {{ form.as_p }}
 <input type="Submit" value="GO" />
 </form>
