@@ -9,7 +9,7 @@ text: {{post.text}}</p>
 <form action="{{ target }}" method="post">
 {% csrf_token %}
 {{ form.as_p }}
-<input type="Submit" value="GO"
+<input type="Submit" value="GO" />
 </form>
 {% endif %}
 {% endfor %}
