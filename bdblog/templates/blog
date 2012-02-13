@@ -1,6 +1,12 @@
 {% extends "posts" %}
 {% block before_posts %}
 {% if admin %}
+<video id="live" style="display:none" autoplay></video>
+<canvas id="snapshot" style="display:none"></canvas>
+
+<a href="#" id="shutter" style="display:none" >Take a picture!</a>
+
+
 <form enctype="multipart/form-data" action="{{ publish }}" method="post">
 {% csrf_token %}
 {{ form.as_p }}

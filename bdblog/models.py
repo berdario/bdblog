@@ -7,7 +7,8 @@ import re
 from django.template.defaultfilters import stringfilter
 from django.core.validators import validate_slug, RegexValidator, MinValueValidator, MaxValueValidator
 from django.core.files.images import get_image_dimensions
-from django.forms import IntegerField, HiddenInput, ModelForm
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.forms import IntegerField, CharField, HiddenInput, ModelForm, ValidationError
 from django.forms.models import modelformset_factory
 
 from django.db import models
@@ -181,18 +182,35 @@ def known_words(words):
 def all_words():
 	return set(Word.objects.values_list('word', flat=True))
 
-
 class PostForm(ModelForm):
 	x = IntegerField(min_value=1, widget=HiddenInput(), required=False)
 	y = IntegerField(min_value=1, widget=HiddenInput(), required=False)
 	size = IntegerField(min_value=1, widget=HiddenInput(), required=False)
+	canvasData = CharField(widget=HiddenInput(), required=False)
 
 	class Meta:
 		model = Post
 		fields = ('title', 'text', 'mug', 'tags')
 
+	def __init__(self, *args, **kwargs):
+		super(PostForm, self).__init__(*args, **kwargs)
+		self.fields['mug'].required = False
+
+	def clean(self):
+		if not self.cleaned_data['mug']:
+			data = self.cleaned_data['canvasData']
+			if data:
+				datatype = data.split(";")[0].split("data:")[-1]
+				data = data.split("base64,",1)[-1]
+				name = "canvas." + datatype.split("/")[-1]
+				self.instance.mug = SimpleUploadedFile(name, data.decode("base64"), content_type=datatype)
+			else:
+				raise ValidationError("You have to supply an image")
+		return self.cleaned_data
+
 	def save(self, *args, **kwargs):
 		mug, x, y, size = [self.cleaned_data[key] for key in ('mug', 'x', 'y', 'size')]
+		mug = mug or self.instance.mug
 		if get_image_dimensions(mug) != (100,100):
 			if all([x, y, size]):
 				make_thumb(mug, (x, y), size)
@@ -203,7 +221,7 @@ PostFormSet = modelformset_factory(Post, form=PostForm)
 def make_thumb(mug, coord, size):
 	image = Image.open(mug.path)
 	image = image.crop((coord[0], coord[1], coord[0] + size, coord[1] + size))
-	image.thumbnail((100, 100))
+	image.thumbnail((100, 100), Image.ANTIALIAS)
 	image.save(mug.path)
 
 def get_post(slug, date=None):
