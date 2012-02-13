@@ -58,7 +58,7 @@ class BasePost(Model):
 		return self.title + " - " + str(self.pub_date.ctime())
 		
 	class Meta(object):
-		ordering = ['orig_date', 'orig_time']
+		ordering = ['-orig_date', '-orig_time']
 
 
 class Post(BasePost):
