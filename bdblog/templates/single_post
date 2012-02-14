@@ -15,6 +15,9 @@
 <input type="Submit" value="GO" />
 </form>
 {% endif %}
+<div id="post_diff">
+{{ dpost.diff|safe }}
+<div>
 {% if rev %}
 <a id="" href="{{p.get_absolute_url}}{% if rev > 1 %}/rev{{rev|add:"-1"}}{% endif %}"><--</a>
 {% endif %}

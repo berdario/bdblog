@@ -70,6 +70,7 @@ def post(request, slug, year, month, day, rev, admin=False):
 		if not dpost.previous:
 			raise Http404
 		dpost.previous.text = patch(dpost.text, dpost.previous._text)
+		dpost.previous.diff = diff_to_html(dpost.text, dpost.previous._text)
 		dpost = dpost.previous
 		r = r - 1
 	return [(p,d)], locals()
