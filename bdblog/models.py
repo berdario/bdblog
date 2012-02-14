@@ -131,6 +131,10 @@ class Post(BasePost):
 		if self._temp_previous:
 			self.previous = self._temp_previous
 			self.previous.save()
+			self.previous = self.previous
+			# ugly hack: otherwise, since the previous hasn't been s
+			# and thus the relationship would not be valid 
+			# (but in other cases django complains with a ValueError
 			self._temp_previous = None
 			resave = True
 		if resave:
