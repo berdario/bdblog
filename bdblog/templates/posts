@@ -1,16 +1,19 @@
 {% extends "main" %}
 {% block content %}
 {% block before_posts %}{% endblock %}
-{% for post, form, target in post_list %}
+{% if admin %}
+<form method="post" action="{{ target }}">
+{% csrf_token %}
+{{ formset.management_form }}
+{% endif %}
+{% for post, form in post_list %}
 <p>title: {{post.title}}<br />
 <img src="{{ MEDIA_URL }}{{ post.mug.name }}" alt="{{ post.orig_date }} mugshot" width="100" /> <br />
 text: {{post.text}}</p>
 {% if admin %}
-<form action="{{ target }}" method="post">
-{% csrf_token %}
 {{ form.as_p }}
 <input type="Submit" value="GO" />
-</form>
 {% endif %}
 {% endfor %}
+</form>
 {% endblock %}

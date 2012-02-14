@@ -28,24 +28,29 @@ def json_or_template(template):
 			request = args[0]
 			result, context = view(*args, **kwargs)
 			context.update(csrf(request))
-			if isinstance(result, Iterable):
-				context['post_list'] = [(post, form, reverse(update_post, args=[p.pk])) for p,(post, form) in izip(result, context['post_list'])]
-			else:
-				context['target'] = reverse(update_post, args=[result.pk])
-				result = [result]
 			if _accept_json(request):
 				return HttpResponse(json.serialize(result), mimetype='application/json')
 			else:
+				context['target'] = context.get('target', reverse(index))
 				return render_to_response(template, context, context_instance=RequestContext(request))
 		return wrapped
 	return outer
 
 @json_or_template('blog')
 def index(request, page, admin=False):
+	if request.method == 'POST':
+		formset = PostFormSet(request.POST, request.FILES)
+		if formset.is_valid():
+			formset.save()
+		else:
+			csrf_token = csrf(request)
+			return render_to_response("bulk_validate", locals(), context_instance=RequestCOntext(request))
+	
 	form = PostForm()
 	publish = reverse(publish_post)
 	bare_posts = get_posts(page=page if page else 1)
-	post_list = izip(bare_posts, PostFormSet(queryset=bare_posts))
+	formset = PostFormSet(queryset=bare_posts)
+	post_list = izip(bare_posts, formset)
 	return bare_posts, locals() 
 
 @json_or_template('single_post')
@@ -56,20 +61,24 @@ def post(request, slug, year, month, day, admin=False):
 		d = date(int(year), month, int(day))
 	p = get_post(slug, d)
 	form = PostForm(instance=p)
-	return p, locals()
+	target = reverse(update_post, args=[p.pk])
+	return [p], locals()
 
 @json_or_template('posts')
 def posts(request, year, month, day, page, admin=False):
 	month = _handle_verbose_month(month)
 	bare_posts = get_posts(year, month, day, page if page else 1)
-	post_list = izip(bare_posts, PostFormSet(queryset=bare_posts))
+	formset = PostFormSet(queryset=bare_posts)
+	post_list = izip(bare_posts, formset)
 	return bare_posts, locals()
 
 @json_or_template('posts')
 def tags(request, tags, page, separator="\.", admin=False):
 	tag_list = [sub(separator," ",tag) for tag in tags.split("+")]
 	bare_posts = from_tags(tag_list, page if page else 1)
-	post_list = izip(bare_posts, PostFormSet(queryset=bare_posts))
+	formset = PostFormSet(queryset=bare_posts)
+	post_list = izip(bare_posts, formset)
+	
 	return bare_posts, locals()
 
 class ThumbMixin(object):

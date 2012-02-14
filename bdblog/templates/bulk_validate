@@ -1,0 +1,8 @@
+{% extends "main" %}
+{% block content %}
+<form enctype="multipart/form-data" action="" method="post">
+{% csrf_token %}
+{{ formset }}
+<input type="Submit" value="GO" />
+</form>
+{% endblock %}
