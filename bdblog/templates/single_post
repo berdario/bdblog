@@ -3,12 +3,22 @@
 <p>
 <a id="post_title" href="{{ p.get_absolute_url }}">{{p.title}}</a><br />
 <img src="{{ MEDIA_URL }}{{ p.mug.name }}" alt="{{ p.orig_date }} mugshot"{% if admin %} class="jcrop_target"{% endif %} /> <br />
-{{p.text}}</p>
+{% if dpost %}
+{{dpost.text}}
+{% else %}
+{{p.text}}
+{% endif %}</p>
 {% if admin %}
 <form action="{{ target }}" method="post">
 {% csrf_token %}
 {{ form.as_p }}
 <input type="Submit" value="GO" />
 </form>
+{% endif %}
+{% if rev %}
+<a id="" href="{{p.get_absolute_url}}{% if rev > 1 %}/rev{{rev|add:"-1"}}{% endif %}"><--</a>
+{% endif %}
+{% if dpost.previous %}
+<a id="" href="{{p.get_absolute_url}}/rev{{rev|default:"0"|add:"1"}}">Changed {{ dpost.pub_date.date }} --></a>
 {% endif %}
 {% endblock %}

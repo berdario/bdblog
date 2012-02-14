@@ -7,5 +7,5 @@ urlpatterns = patterns('',
 	(r'^tag/(?P<tags>\w[\w\+\.]+\w)/(page(?P<page>\d+)/)?$', tags),
 	(r'^publish/$', publish_post),
 	(r'^update/(?P<pk>\d+)/$', update_post),
-	(r'^((?P<year>\d{4})/(?P<month>\d{1,2}|\w{3,9})/(?P<day>\d{1,2})/)?(?P<slug>\w+[\w-]+\w+)/$', post),
+	(r'^((?P<year>\d{4})/(?P<month>\d{1,2}|\w{3,9})/(?P<day>\d{1,2})/)?(?P<slug>\w+[\w-]+\w+)/(rev(?P<rev>\d+)/)?$', post),
 )

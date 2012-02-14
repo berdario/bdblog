@@ -4,7 +4,7 @@ from django.core.context_processors import csrf
 from django.core.files.images import get_image_dimensions
 from django.views.generic.edit import CreateView, UpdateView
 from django.template import RequestContext
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.shortcuts import render_to_response
 from unidecode import unidecode
 from re import sub
@@ -15,6 +15,7 @@ from itertools import izip
 json = serializers.get_serializer('json')()
 
 from models import from_tags, get_post, get_posts, PostForm, PostFormSet
+from differ import patch, diff_to_html
 
 months = dict((month, n % 12) for n, month in enumerate([
 	"jan", "feb", "mar", "apr", "may", "jun",
@@ -54,7 +55,7 @@ def index(request, page, admin=False):
 	return bare_posts, locals() 
 
 @json_or_template('single_post')
-def post(request, slug, year, month, day, admin=False):
+def post(request, slug, year, month, day, rev, admin=False):
 	d = None
 	if year and month and day:
 		month = _handle_verbose_month(month)
@@ -62,7 +63,16 @@ def post(request, slug, year, month, day, admin=False):
 	p = get_post(slug, d)
 	form = PostForm(instance=p)
 	target = reverse(update_post, args=[p.pk])
-	return [p], locals()
+	r = int(rev or 0)
+	rev = rev and int(rev)
+	dpost = p
+	while r:
+		if not dpost.previous:
+			raise Http404
+		dpost.previous.text = patch(dpost.text, dpost.previous._text)
+		dpost = dpost.previous
+		r = r - 1
+	return [(p,d)], locals()
 
 @json_or_template('posts')
 def posts(request, year, month, day, page, admin=False):
