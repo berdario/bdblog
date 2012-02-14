@@ -141,7 +141,7 @@ class Post(BasePost):
 		return self.title
 	
 	def get_absolute_url(self):
-		return "/blog/%s/%s/%s/%s" % (
+		return u"/blog/%s/%s/%s/%s" % (
 			self.orig_date.year,
 			self.orig_date.month,
 			self.orig_date.day,
@@ -166,7 +166,7 @@ class Word(Model):
 	
 @stringfilter
 def slugify(value):
-	value = normalize('NFKD', value)
+	value = normalize('NFKC', value)
 	value = re.sub(re.compile('[?,:!@#~`+=$%^&\\*()\[\]{}<>"]', re.UNICODE), '', value, 0).strip().lower()
 	# sub('[^\w\s-]', '', value) like in the default slugify won't work since it'll catch also unicode letters
 	# TODO, check this again: it seems that I wasn't really supplying re.UNICODE to the substitution
