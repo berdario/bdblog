@@ -1,13 +1,12 @@
 <!doctype html>
 
 <head>
-<title>{% block title %}Blog{% endblock %}</title>
+<title>{% block title %}{% endblock %}Blog</title>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
 <script src="{{STATIC_URL}}jquery.Jcrop.min.js"></script>
 <script src="{{STATIC_URL}}bdblog.js"></script>
 </head>
 <body>
-<h1> BLOG: </h1>
 {% if user.is_authenticated %}
 <p> Welcome back, {{ user.username }}. <a href="/logout">Logout</a></p>
 {% endif %}
