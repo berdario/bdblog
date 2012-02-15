@@ -4,8 +4,10 @@ from django.core.context_processors import csrf
 from django.core.files.images import get_image_dimensions
 from django.views.generic.edit import CreateView, UpdateView
 from django.template import RequestContext
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response
+from django.contrib.auth.decorators import permission_required
+
 from unidecode import unidecode
 from re import sub
 from datetime import date
@@ -41,11 +43,14 @@ def json_or_template(template):
 def index(request, page, admin=False):
 	if request.method == 'POST':
 		formset = PostFormSet(request.POST, request.FILES)
-		if formset.is_valid():
-			formset.save()
+		if request.user.has_perm('bdblog.change_post'):
+			if formset.is_valid():
+				formset.save()
+			else:
+				csrf_token = csrf(request)
+				return render_to_response("bulk_validate", locals(), context_instance=RequestCOntext(request))
 		else:
-			csrf_token = csrf(request)
-			return render_to_response("bulk_validate", locals(), context_instance=RequestCOntext(request))
+			HttpResponseRedirect('/getinto/')
 	
 	form = PostForm()
 	publish = reverse(publish_post)
@@ -104,14 +109,14 @@ class PublishPost(ThumbMixin, CreateView):
 	form_class = PostForm
 	template_name = "validate"
 
-publish_post = PublishPost.as_view()
+publish_post = permission_required('bdblog.add_post')(PublishPost.as_view())
 
 class UpdatePost(ThumbMixin, UpdateView):
 	form_class = PostForm
 	model = form_class.Meta.model
 	template_name = "validate"
 
-update_post = UpdatePost.as_view()
+update_post = permission_required('bdblog.change_post')(UpdatePost.as_view())
 
 def _handle_verbose_month(month):
 	if month:

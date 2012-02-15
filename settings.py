@@ -9,6 +9,11 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+LOGIN_URL = '/getinto/login/'
+LOGIN_REDIRECT_URL = '/publish/'
+
+OPENID_USE_AS_ADMIN_LOGIN = True
+
 DATABASES = {
 	'default': {
 		'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
@@ -78,6 +83,11 @@ MIDDLEWARE_CLASSES = (
 	'django.contrib.messages.middleware.MessageMiddleware',
 )
 
+AUTHENTICATION_BACKENDS = (
+	'django_openid_auth.auth.OpenIDBackend',
+	'django.contrib.auth.backends.ModelBackend',
+)
+
 ROOT_URLCONF = 'berdar.urls'
 
 TEMPLATE_DIRS = (
@@ -97,6 +107,7 @@ INSTALLED_APPS = (
 	'berdar.bdblog',
 	'django.contrib.admin',
 	'django.contrib.markup',
+	'django_openid_auth',
 	# Uncomment the next line to enable admin documentation:
 	# 'django.contrib.admindocs',
 )
