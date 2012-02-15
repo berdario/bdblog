@@ -55,7 +55,7 @@ def index(request, page, admin=False):
 				csrf_token = csrf(request)
 				return render_to_response("bulk_validate", locals(), context_instance=RequestCOntext(request))
 		else:
-			return HttpResponseRedirect('/getinto/login/')
+			return HttpResponseRedirect('/openid/login/')
 	
 	form = PostForm()
 	publish = reverse(publish_post)

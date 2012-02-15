@@ -9,7 +9,7 @@
 <body>
 <h1> BLOG: </h1>
 {% if user.is_authenticated %}
-<p> Welcome back, {{ user.username }}. <a href="/getinto/logout">Logout</a></p>
+<p> Welcome back, {{ user.username }}. <a href="/logout">Logout</a></p>
 {% endif %}
 {% block content %}
 {% endblock %}

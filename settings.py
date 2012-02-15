@@ -9,7 +9,7 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-LOGIN_URL = '/getinto/login/'
+LOGIN_URL = '/openid/login/'
 LOGIN_REDIRECT_URL = '/publish/'
 
 OPENID_USE_AS_ADMIN_LOGIN = True
