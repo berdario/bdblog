@@ -96,6 +96,7 @@ INSTALLED_APPS = (
 	'django.contrib.staticfiles',
 	'berdar.bdblog',
 	'django.contrib.admin',
+	'django.contrib.markup',
 	# Uncomment the next line to enable admin documentation:
 	# 'django.contrib.admindocs',
 )
