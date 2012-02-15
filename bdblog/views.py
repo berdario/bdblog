@@ -29,7 +29,12 @@ def json_or_template(template):
 	def outer(view):
 		def wrapped(*args, **kwargs):
 			request = args[0]
-			result, context = view(*args, **kwargs)
+			result = view(*args, **kwargs)
+			if isinstance(result, HttpResponse):
+				# TODO get rid of this decorator, it's getting kludgy
+				# to integrate it properly with the views
+				return result
+			result, context = result[0], result[1]
 			context.update(csrf(request))
 			if _accept_json(request):
 				return HttpResponse(json.serialize(result), mimetype='application/json')
@@ -50,7 +55,7 @@ def index(request, page, admin=False):
 				csrf_token = csrf(request)
 				return render_to_response("bulk_validate", locals(), context_instance=RequestCOntext(request))
 		else:
-			HttpResponseRedirect('/getinto/')
+			return HttpResponseRedirect('/getinto/login/')
 	
 	form = PostForm()
 	publish = reverse(publish_post)

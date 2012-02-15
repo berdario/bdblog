@@ -105,9 +105,9 @@ INSTALLED_APPS = (
 	'django.contrib.messages',
 	'django.contrib.staticfiles',
 	'berdar.bdblog',
-	'django.contrib.admin',
 	'django.contrib.markup',
 	'django_openid_auth',
+	#'django.contrib.admin',
 	# Uncomment the next line to enable admin documentation:
 	# 'django.contrib.admindocs',
 )
