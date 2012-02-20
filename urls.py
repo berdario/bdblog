@@ -11,8 +11,8 @@ from bdblog.views import index
 urlpatterns = patterns('',
 	#(r'^admin/', include(admin.site.urls)),
 	(r'^$', index, {'page': None}),
-	(r'^blog/', include('berdar.bdblog.urls')),
-	(r'^publish/', include('berdar.bdblog.urls'), {'admin': True}),
+	(r'^blog/', include('bdblog.urls')),
+	(r'^publish/', include('bdblog.urls'), {'admin': True}),
 	(r'^logout/', logout_then_login),
 	(r'^openid/', include('django_openid_auth.urls'))
 ) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
