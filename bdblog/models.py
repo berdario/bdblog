@@ -10,14 +10,13 @@ from django.core.files.images import get_image_dimensions
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.forms import IntegerField, CharField, HiddenInput, ModelForm, ValidationError
 from django.forms.models import modelformset_factory
+from django.utils.timezone import now
 
 from django.db import models
 from django.db.models import Model, F, Q
 
 from PIL import Image
 from differ import diff
-
-now = datetime.datetime.now
 
 def set_mug_path(instance, filename):
 	d = instance.orig_date
