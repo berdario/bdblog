@@ -10,7 +10,15 @@ from django.core.files.images import get_image_dimensions
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.forms import IntegerField, CharField, HiddenInput, ModelForm, ValidationError
 from django.forms.models import modelformset_factory
-from django.utils.timezone import now
+
+try:
+	from django.utils.timezone import now
+except ImportError:
+	from datetime import datetime
+	from settings import TIME_ZONE
+	from pytz import timezone
+	from functools import partial
+	now = partial(datetime.now, timezone(TIME_ZONE))
 
 from django.db import models
 from django.db.models import Model, F, Q
